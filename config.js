@@ -39,7 +39,6 @@ window.FACILITY_OPS_CONFIG = {
       btn.disabled = true;
       btn.textContent = '연결 확인 중...';
 
-      // 상태 문구가 먼저 화면에 그려지도록 한 프레임 양보
       await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
       try {
@@ -78,7 +77,6 @@ window.FACILITY_OPS_CONFIG = {
           throw new Error('Supabase 응답 오류 (HTTP ' + response.status + ')');
         }
 
-        // 브라우저 저장이 차단된 환경이어도 연결 자체는 계속 진행
         try {
           localStorage.setItem('facility_ops_supabase_config', JSON.stringify(cfg));
         } catch (_) {}
@@ -118,7 +116,56 @@ window.FACILITY_OPS_CONFIG = {
     }, true);
   }
 
-  // config.js는 폼 뒤에서 로드되므로 즉시 연결 가능. 혹시를 위해 한 번 더 시도.
   attachConnectionHotfix();
   window.addEventListener('DOMContentLoaded', attachConnectionHotfix, { once: true });
+})();
+
+// v0.3.2: 직원은 실제 이메일 대신 아이디 + 비밀번호로 로그인합니다.
+// Supabase 내부에서는 <아이디>@facility.local 형태의 계정을 사용합니다.
+(function () {
+  const INTERNAL_LOGIN_DOMAIN = 'facility.local';
+
+  function attachIdLoginMode() {
+    const input = document.getElementById('loginEmail');
+    if (input && input.dataset.idLoginPatched !== '1') {
+      input.dataset.idLoginPatched = '1';
+      input.type = 'text';
+      input.placeholder = '예: gyewon';
+      input.autocapitalize = 'none';
+      input.spellcheck = false;
+      input.maxLength = 32;
+      const label = input.closest('.auth-field')?.querySelector('label');
+      if (label) label.textContent = '아이디';
+    }
+
+    const help = document.querySelector('#authPane-login .auth-help');
+    if (help) help.textContent = '관리자에게 발급받은 아이디와 비밀번호로 로그인하면 같은 시설 데이터를 여러 PC에서 함께 사용할 수 있습니다.';
+
+    const authVersion = document.querySelector('.auth-logo p');
+    if (authVersion) authVersion.textContent = 'v0.3.2 ID LOGIN ONLINE';
+    const sideVersion = document.querySelector('.sidebar .version');
+    if (sideVersion) sideVersion.textContent = 'FACILITY OPS v0.3.2 ONLINE';
+
+    if (typeof window.loginWithPassword === 'function' && !window.loginWithPassword.__facilityIdLoginPatched) {
+      const originalLogin = window.loginWithPassword;
+      const wrappedLogin = async function (loginId, password) {
+        let id = String(loginId || '').trim().toLowerCase();
+        const errorEl = document.getElementById('loginError');
+        if (!id) {
+          if (errorEl) errorEl.textContent = '아이디를 입력해 주세요.';
+          return;
+        }
+        // 과거 실제 이메일 계정도 그대로 로그인할 수 있도록 호환 유지
+        const email = id.includes('@') ? id : id + '@' + INTERNAL_LOGIN_DOMAIN;
+        return originalLogin(email, password);
+      };
+      wrappedLogin.__facilityIdLoginPatched = true;
+      window.loginWithPassword = wrappedLogin;
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', function () {
+    // 메인 스크립트 init() 이후에 덮어쓰도록 한 틱 뒤 적용
+    setTimeout(attachIdLoginMode, 0);
+  }, { once: true });
 })();
