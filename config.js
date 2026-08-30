@@ -267,6 +267,15 @@ window.FACILITY_OPS_CONFIG = {
                   polish.id = 'facilityOpsPolish043';
                   polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
                   polish.async = false;
+                  polish.onload = function() {
+                    if (!document.getElementById('facilityOpsSmartOps044')) {
+                      const smart = document.createElement('script');
+                      smart.id = 'facilityOpsSmartOps044';
+                      smart.src = 'v044.js?v=044-smart-ops-20260830';
+                      smart.async = false;
+                      document.body.appendChild(smart);
+                    }
+                  };
                   document.body.appendChild(polish);
                 }
               };
