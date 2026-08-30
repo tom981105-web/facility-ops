@@ -252,7 +252,7 @@ window.FACILITY_OPS_CONFIG = {
             if (!document.getElementById('facilityOpsLogoFix043')) {
               const logoFix = document.createElement('script');
               logoFix.id = 'facilityOpsLogoFix043';
-              logoFix.src = 'v043_logo_fix.js?v=043-logo-direct-final-20260830';
+              logoFix.src = 'v043_logo_fix.js?v=043-brand-align-20260830-1705';
               logoFix.async = false;
               document.body.appendChild(logoFix);
             }
