@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark light" />
+  <title>FACILITY OPS v0.3.0 - Multi User Online</title>
+  <style>
+:root {
+  --bg: #081018;
+  --panel: #0d1722;
+  --panel-2: #111e2b;
+  --panel-3: #162536;
+  --line: rgba(151, 181, 210, .14);
+  --line-strong: rgba(151, 181, 210, .24);
+  --text: #ecf3f8;
+  --muted: #8194a5;
+  --soft: #b6c5d1;
+  --accent: #6fe3c1;
+  --accent-2: #4da8ff;
+  --normal: #64dd9d;
+  --watch: #f5c35b;
+  --alert: #ff6d75;
+  --repair: #6da7ff;
+  --shadow: 0 18px 50px rgba(0,0,0,.28);
+  --radius: 18px;
+}
+
+body.light {
+  --bg: #f2f5f8;
+  --panel: #ffffff;
+  --panel-2: #f8fafc;
+  --panel-3: #eef3f7;
+  --line: rgba(28, 50, 68, .10);
+  --line-strong: rgba(28, 50, 68, .18);
+  --text: #132231;
+  --muted: #718091;
+  --soft: #435569;
+  --accent: #167d69;
+  --accent-2: #276fbf;
+  --normal: #218c5f;
+  --watch: #a46c0b;
+  --alert: #c44049;
+  --repair: #2862b2;
+  --shadow: 0 18px 50px rgba(41, 57, 71, .10);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+  background:
+    radial-gradient(circle at 84% 8%, rgba(77,168,255,.07), transparent 28%),
+    radial-gradient(circle at 12% 90%, rgba(111,227,193,.05), transparent 32%),
+    var(--bg);
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 238px minmax(0, 1fr); }
+.sidebar {
+  position: sticky; top: 0; height: 100vh;
+  padding: 24px 18px 18px;
+  border-right: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 93%, transparent);
+  backdrop-filter: blur(18px);
+  display: flex; flex-direction: column;
+}
+.brand { display: flex; align-items: center; gap: 12px; padding: 3px 6px 24px; }
+.brand strong { display: block; font-size: 15px; letter-spacing: .08em; }
+.brand small { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; letter-spacing: .14em; }
+.brand-mark { width: 34px; height: 34px; display: grid; grid-template-columns: repeat(2,1fr); gap: 3px; transform: rotate(45deg); }
+.brand-mark span { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-radius: 4px; opacity: .95; }
+
+.nav { display: grid; gap: 7px; }
+.nav-item {
+  border: 1px solid transparent; background: transparent; color: var(--muted);
+  border-radius: 12px; padding: 12px 13px; display: flex; gap: 12px; align-items: center; text-align: left;
+  transition: .18s ease;
+}
+.nav-item span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 7px; background: var(--panel-2); color: var(--soft); }
+.nav-item b { font-size: 13px; font-weight: 650; }
+.nav-item:hover { color: var(--text); background: var(--panel-2); }
+.nav-item.active { color: var(--text); background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent), transparent); border-color: color-mix(in srgb, var(--accent) 22%, transparent); }
+.nav-item.active span { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--panel-2)); }
+.sidebar-bottom { margin-top: auto; display: grid; gap: 8px; }
+.system-pill { padding: 10px 11px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); font-size: 9px; letter-spacing: .12em; display: flex; align-items:center; gap: 8px; }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--normal); box-shadow: 0 0 0 0 color-mix(in srgb, var(--normal) 40%, transparent); animation: pulse 1.8s infinite; }
+@keyframes pulse { 60% { box-shadow: 0 0 0 7px transparent; } }
+.version { text-align: center; color: var(--muted); font-size: 9px; padding-top: 8px; letter-spacing: .09em; }
+
+.main { min-width: 0; padding: 28px 34px 50px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 25px; }
+.eyebrow { color: var(--muted); font-size: 9px; letter-spacing: .18em; font-weight: 700; }
+h1 { margin: 6px 0 0; font-size: 25px; letter-spacing: -.04em; }
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.clock { color: var(--muted); font-size: 11px; min-width: 145px; text-align: right; line-height: 1.45; }
+
+.primary-btn, .ghost-btn, .icon-btn {
+  border-radius: 11px; border: 1px solid var(--line); min-height: 38px; transition: .16s ease;
+}
+.primary-btn { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent-2) 70%, var(--accent))); color: #041813; border: none; padding: 0 16px; font-weight: 800; box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 12%, transparent); }
+.primary-btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+.ghost-btn { padding: 0 13px; background: var(--panel-2); color: var(--soft); }
+.ghost-btn:hover { border-color: var(--line-strong); color: var(--text); background: var(--panel-3); }
+.icon-btn { width: 38px; padding: 0; background: var(--panel-2); color: var(--soft); font-size: 17px; }
+.icon-btn:hover { color: var(--text); border-color: var(--line-strong); }
+.full { width: 100%; }
+.danger-subtle { color: color-mix(in srgb, var(--alert) 75%, var(--soft)); }
+.file-label { display: grid; place-items: center; font-size: inherit; }
+.file-label input { display: none; }
+
+.view { display: none; }
+.view.active { display: block; animation: fade .18s ease; }
+@keyframes fade { from { opacity: .45; transform: translateY(4px); } }
+
+.status-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+.status-card, .panel, .metric-card {
+  border: 1px solid var(--line); background: linear-gradient(145deg, var(--panel), color-mix(in srgb, var(--panel-2) 58%, var(--panel)));
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.status-card { padding: 17px 18px; position: relative; overflow: hidden; min-height: 108px; }
+.status-card::after { content:""; position:absolute; width: 80px; height:80px; border-radius:50%; right:-28px; top:-34px; background: currentColor; opacity:.06; }
+.status-card .label { color: var(--muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.status-card .value { font-size: 31px; line-height: 1; font-weight: 800; margin-top: 12px; }
+.status-card .sub { color: var(--muted); font-size: 10px; margin-top: 8px; }
+.status-card.normal { color: var(--normal); } .status-card.watch { color: var(--watch); } .status-card.alert { color: var(--alert); } .status-card.repair { color: var(--repair); }
+
+.dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .85fr); gap: 14px; margin-top: 14px; }
+.panel { padding: 18px; }
+.panel-title { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:15px; }
+.panel-title h3 { margin:0; font-size:14px; }
+.panel-title small { color:var(--muted); font-size:10px; }
+.metric-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+.metric-card { box-shadow:none; padding:14px; }
+.metric-card .m-label { color:var(--muted); font-size:10px; }
+.metric-card .m-value { font-size:22px; font-weight:800; margin-top:8px; }
+.metric-card .m-foot { font-size:9px; color:var(--muted); margin-top:6px; }
+
+.progress-wrap { display:grid; grid-template-columns: 126px 1fr; gap:18px; align-items:center; }
+.donut { width:118px; height:118px; border-radius:50%; display:grid; place-items:center; position:relative; background: conic-gradient(var(--accent) var(--progress), var(--panel-3) 0); }
+.donut::before { content:""; width:86px; height:86px; border-radius:50%; background:var(--panel); position:absolute; }
+.donut-content { position:relative; text-align:center; }
+.donut-content strong { display:block; font-size:23px; } .donut-content small { color:var(--muted); font-size:9px; }
+.progress-list { display:grid; gap:10px; }
+.progress-line { display:grid; grid-template-columns:72px 1fr 32px; gap:9px; align-items:center; font-size:10px; color:var(--muted); }
+.bar { height:6px; background:var(--panel-3); border-radius:999px; overflow:hidden; }.bar span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent),var(--accent-2)); }
+
+.table-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+.searchbox { display:flex; align-items:center; gap:8px; border:1px solid var(--line); background:var(--panel-2); border-radius:11px; padding:0 12px; min-width:250px; }
+.searchbox input { border:0; outline:0; background:transparent; color:var(--text); min-height:38px; width:100%; font-size:12px; }
+.filter-row { display:flex; gap:8px; flex-wrap:wrap; }
+.filter-btn { border:1px solid var(--line); background:var(--panel-2); color:var(--muted); border-radius:999px; padding:7px 11px; font-size:10px; }
+.filter-btn.active { color:var(--text); border-color:color-mix(in srgb,var(--accent) 35%,var(--line)); background:color-mix(in srgb,var(--accent) 9%,var(--panel-2)); }
+
+.data-table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; }
+.data-table th { text-align:left; padding:11px 12px; color:var(--muted); font-size:9px; letter-spacing:.08em; font-weight:700; border-bottom:1px solid var(--line); }
+.data-table td { padding:13px 12px; border-bottom:1px solid var(--line); font-size:11px; color:var(--soft); vertical-align:middle; }
+.data-table tbody tr { transition:.15s ease; }.data-table tbody tr:hover { background:color-mix(in srgb,var(--accent) 4%,transparent); }
+.data-table tbody tr:last-child td { border-bottom:0; }
+.name-cell strong { color:var(--text); display:block; font-size:12px; }.name-cell small { color:var(--muted); display:block; margin-top:4px; }
+.status-badge, .tag { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 8px; font-size:9px; font-weight:700; border:1px solid currentColor; }
+.status-badge::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+.status-normal { color:var(--normal); }.status-watch { color:var(--watch); }.status-alert { color:var(--alert); }.status-repair { color:var(--repair); }
+.status-open { color:var(--alert); }.status-progress { color:var(--watch); }.status-done { color:var(--normal); }
+.tag { border-color:var(--line); color:var(--muted); background:var(--panel-2); }
+.row-actions { display:flex; gap:5px; justify-content:flex-end; }.mini-btn { border:1px solid var(--line); background:var(--panel-2); color:var(--muted); border-radius:8px; height:28px; padding:0 8px; font-size:9px; }.mini-btn:hover{color:var(--text);border-color:var(--line-strong)}
+
+.activity-list, .alert-list { display:grid; gap:9px; }
+.activity-item { display:grid; grid-template-columns:8px 1fr auto; gap:10px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line); }
+.activity-item:last-child{border-bottom:0}.activity-dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}.activity-main strong{display:block;font-size:11px}.activity-main small{display:block;color:var(--muted);font-size:9px;margin-top:4px}.activity-time{color:var(--muted);font-size:9px}
+.empty { padding:28px; text-align:center; color:var(--muted); font-size:11px; border:1px dashed var(--line); border-radius:14px; }
+
+.schedule-layout { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr); gap:14px; }
+.calendar { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+.cal-head { color:var(--muted); font-size:9px; text-align:center; padding:7px 0; }
+.cal-day { min-height:88px; border:1px solid var(--line); border-radius:11px; padding:8px; background:var(--panel-2); position:relative; }
+.cal-day.other { opacity:.35; }.cal-day.today { border-color:color-mix(in srgb,var(--accent) 52%,var(--line)); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 15%,transparent); }
+.cal-num { color:var(--muted); font-size:9px; }.cal-events{display:grid;gap:4px;margin-top:7px}.cal-event{font-size:8px;border-radius:6px;padding:4px 5px;background:var(--panel-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid var(--accent)}
+.month-nav{display:flex;align-items:center;gap:8px}.month-title{min-width:110px;text-align:center;font-size:12px;font-weight:700}
+
+.modal-backdrop { position:fixed; inset:0; z-index:50; background:rgba(2,8,14,.72); backdrop-filter:blur(8px); display:grid; place-items:center; padding:22px; }
+.modal-backdrop[hidden]{display:none}.modal{width:min(720px,96vw);max-height:90vh;overflow:auto;border:1px solid var(--line-strong);background:var(--panel);border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.45)}
+.modal-head,.modal-foot{padding:17px 19px;display:flex;align-items:center;justify-content:space-between;gap:12px}.modal-head{border-bottom:1px solid var(--line)}.modal-head h2{margin:5px 0 0;font-size:18px}.modal-foot{border-top:1px solid var(--line);justify-content:flex-end}.modal-body{padding:19px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:grid;gap:6px}.field.full-span{grid-column:1/-1}.field label{font-size:9px;color:var(--muted);letter-spacing:.06em}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--text);padding:10px 11px;outline:none;font-size:11px}.field textarea{min-height:92px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+
+.toast-region{position:fixed;right:22px;bottom:22px;z-index:70;display:grid;gap:8px}.toast{padding:11px 14px;border:1px solid var(--line-strong);border-radius:11px;background:var(--panel);box-shadow:var(--shadow);font-size:10px;animation:toastin .2s ease}.toast strong{color:var(--accent);margin-right:7px}@keyframes toastin{from{opacity:0;transform:translateY(8px)}}
+
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}.section-head h2{font-size:16px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted);font-size:10px}.count-pill{border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:9px}
+
+
+.status-card.clickable, .metric-card.clickable { cursor:pointer; transition: transform .16s ease, border-color .16s ease; }
+.status-card.clickable:hover, .metric-card.clickable:hover { transform:translateY(-2px); border-color:var(--line-strong); }
+.facility-row { cursor:pointer; }
+.facility-row:hover td { color:var(--text); }
+.toolbar-cluster { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.filter-select { min-height:34px; border:1px solid var(--line); border-radius:999px; background:var(--panel-2); color:var(--soft); padding:0 30px 0 11px; font-size:10px; outline:none; }
+.filter-btn.warn-filter.active { color:var(--watch); border-color:color-mix(in srgb,var(--watch) 42%,var(--line)); background:color-mix(in srgb,var(--watch) 8%,var(--panel-2)); }
+.due-badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 7px; font-size:8px; font-weight:800; border:1px solid var(--line); white-space:nowrap; }
+.due-badge.overdue { color:var(--alert); border-color:color-mix(in srgb,var(--alert) 42%,var(--line)); background:color-mix(in srgb,var(--alert) 7%,transparent); }
+.due-badge.soon { color:var(--watch); border-color:color-mix(in srgb,var(--watch) 42%,var(--line)); background:color-mix(in srgb,var(--watch) 7%,transparent); }
+.detail-shell { display:grid; gap:14px; }
+.detail-hero { border:1px solid var(--line); border-radius:22px; background:linear-gradient(145deg,var(--panel),color-mix(in srgb,var(--panel-2) 64%,var(--panel))); box-shadow:var(--shadow); padding:22px; position:relative; overflow:hidden; }
+.detail-hero::after { content:""; position:absolute; width:240px; height:240px; border-radius:50%; right:-100px; top:-130px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); opacity:.055; }
+.detail-head { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; position:relative; z-index:1; }
+.detail-title-wrap { display:flex; gap:14px; align-items:flex-start; }
+.detail-code { width:42px; height:42px; border-radius:13px; display:grid; place-items:center; border:1px solid var(--line); background:var(--panel-2); color:var(--accent); font-size:11px; font-weight:900; }
+.detail-head h2 { margin:3px 0 6px; font-size:22px; letter-spacing:-.035em; }
+.detail-sub { color:var(--muted); font-size:10px; display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+.detail-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.detail-warning { margin-top:16px; padding:11px 13px; border-radius:12px; border:1px solid color-mix(in srgb,var(--alert) 34%,var(--line)); background:color-mix(in srgb,var(--alert) 6%,var(--panel-2)); color:var(--soft); font-size:10px; display:flex; align-items:center; gap:9px; }
+.detail-warning.watch { border-color:color-mix(in srgb,var(--watch) 34%,var(--line)); background:color-mix(in srgb,var(--watch) 6%,var(--panel-2)); }
+.detail-metrics { margin-top:18px; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; position:relative; z-index:1; }
+.detail-metric { padding:13px; border:1px solid var(--line); border-radius:13px; background:color-mix(in srgb,var(--panel-2) 78%,transparent); }
+.detail-metric small { color:var(--muted); font-size:9px; display:block; }
+.detail-metric strong { font-size:14px; display:block; margin-top:7px; color:var(--text); }
+.detail-grid { display:grid; grid-template-columns:minmax(280px,.72fr) minmax(0,1.28fr); gap:14px; }
+.info-list { display:grid; gap:0; }
+.info-row { display:grid; grid-template-columns:92px 1fr; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); align-items:start; }
+.info-row:last-child { border-bottom:0; }
+.info-row span { color:var(--muted); font-size:9px; }
+.info-row strong { color:var(--soft); font-size:11px; font-weight:600; line-height:1.55; word-break:break-word; }
+.quick-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:16px; }
+.quick-action { border:1px solid var(--line); border-radius:12px; background:var(--panel-2); color:var(--soft); min-height:54px; text-align:left; padding:10px 11px; transition:.16s ease; }
+.quick-action:hover { border-color:color-mix(in srgb,var(--accent) 36%,var(--line)); background:color-mix(in srgb,var(--accent) 6%,var(--panel-2)); color:var(--text); }
+.quick-action b { display:block; font-size:10px; }
+.quick-action small { display:block; margin-top:4px; color:var(--muted); font-size:8px; }
+.timeline { display:grid; gap:0; }
+.timeline-item { display:grid; grid-template-columns:34px minmax(0,1fr) auto; gap:11px; padding:13px 0; border-bottom:1px solid var(--line); align-items:start; }
+.timeline-item:last-child { border-bottom:0; }
+.timeline-icon { width:30px; height:30px; border-radius:10px; display:grid; place-items:center; background:var(--panel-2); border:1px solid var(--line); font-size:11px; font-weight:900; color:var(--accent); }
+.timeline-icon.issue { color:var(--alert); }.timeline-icon.schedule { color:var(--repair); }.timeline-icon.done { color:var(--normal); }
+.timeline-main strong { display:block; font-size:11px; color:var(--text); }
+.timeline-main small { display:block; color:var(--muted); font-size:9px; margin-top:5px; line-height:1.5; }
+.timeline-side { text-align:right; min-width:86px; }
+.timeline-side time { display:block; color:var(--muted); font-size:9px; margin-bottom:6px; }
+.back-link { display:inline-flex; align-items:center; gap:6px; color:var(--muted); background:transparent; border:0; padding:0; margin-bottom:10px; font-size:10px; }
+.back-link:hover { color:var(--text); }
+.recent-done-title { color:var(--normal); }
+@media (max-width:1100px){.detail-grid{grid-template-columns:1fr}.detail-metrics{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){.detail-head{flex-direction:column}.detail-actions{justify-content:flex-start}.detail-metrics{grid-template-columns:1fr 1fr}.quick-actions{grid-template-columns:1fr}.timeline-item{grid-template-columns:30px minmax(0,1fr)}.timeline-side{grid-column:2;text-align:left}.toolbar-cluster{align-items:stretch}.filter-select{width:100%}}
+
+@media (max-width:1100px){.status-grid{grid-template-columns:repeat(2,1fr)}.dashboard-grid,.schedule-layout{grid-template-columns:1fr}.app-shell{grid-template-columns:205px minmax(0,1fr)}.main{padding:24px}.metric-row{grid-template-columns:1fr}}
+@media (max-width:760px){.app-shell{display:block}.sidebar{position:relative;width:100%;height:auto}.nav{grid-template-columns:repeat(5,1fr)}.nav-item{justify-content:center;padding:9px}.nav-item b{display:none}.sidebar-bottom{display:none}.main{padding:18px}.topbar{align-items:flex-start}.clock{display:none}.status-grid{grid-template-columns:1fr 1fr}.modal-body{grid-template-columns:1fr}.table-toolbar{align-items:stretch;flex-direction:column}.searchbox{min-width:0}.data-table{min-width:760px}.panel{overflow:auto}.progress-wrap{grid-template-columns:1fr}.donut{margin:auto}}
+
+/* v0.3.0 READABILITY PATCH — 기능/레이아웃 구조는 유지하고 글자 가독성만 상향 */
+.brand strong { font-size:17px; }
+.brand small { font-size:10px; }
+.nav-item b { font-size:14px; }
+.system-pill, .version { font-size:10px; }
+.eyebrow { font-size:10px; }
+h1 { font-size:28px; }
+.clock { font-size:12px; }
+.primary-btn, .ghost-btn, .file-label { font-size:13px; }
+.status-card .label, .status-card .sub { font-size:11px; }
+.status-card .value { font-size:33px; }
+.panel-title h3 { font-size:16px; }
+.panel-title small { font-size:11px; }
+.metric-card .m-label { font-size:11px; }
+.metric-card .m-value { font-size:24px; }
+.metric-card .m-foot { font-size:10px; }
+.donut-content strong { font-size:25px; }
+.donut-content small { font-size:10px; }
+.progress-line { font-size:11px; }
+.searchbox input { font-size:13px; }
+.filter-btn, .filter-select { font-size:11px; }
+.data-table th { font-size:10.5px; padding:12px 12px; }
+.data-table td { font-size:13px; padding:14px 12px; }
+.name-cell strong { font-size:14px; }
+.name-cell small { font-size:11px; }
+.status-badge, .tag { font-size:10.5px; }
+.mini-btn { font-size:10.5px; }
+.activity-main strong { font-size:13px; }
+.activity-main small { font-size:11px; }
+.activity-time { font-size:10px; }
+.empty { font-size:12px; }
+.cal-head, .cal-num { font-size:10px; }
+.cal-event { font-size:9.5px; }
+.month-title { font-size:13px; }
+.modal-head h2 { font-size:20px; }
+.field label { font-size:11px; }
+.field input, .field select, .field textarea { font-size:13px; }
+.toast { font-size:11px; }
+.section-head h2 { font-size:18px; }
+.section-head p { font-size:11px; }
+.count-pill { font-size:10px; }
+.due-badge { font-size:10px; }
+.detail-code { font-size:12px; }
+.detail-head h2 { font-size:24px; }
+.detail-sub, .detail-warning { font-size:11px; }
+.detail-metric small { font-size:10.5px; }
+.detail-metric strong { font-size:16px; }
+.info-row span { font-size:10.5px; }
+.info-row strong { font-size:13px; }
+.quick-action b { font-size:12px; }
+.quick-action small { font-size:10px; }
+.timeline-main strong { font-size:13px; }
+.timeline-main small { font-size:11px; }
+.timeline-side time { font-size:10px; }
+.back-link { font-size:11px; }
+
+
+/* v0.3 MULTI USER ONLINE */
+.online-pill { padding:9px 11px; border:1px solid var(--line); border-radius:11px; font-size:10px; color:var(--muted); display:flex; gap:7px; align-items:center; }
+.online-dot { width:7px; height:7px; border-radius:50%; background:var(--watch); }
+.online-pill.live .online-dot { background:var(--normal); box-shadow:0 0 0 4px color-mix(in srgb,var(--normal) 12%,transparent); }
+.user-chip { min-height:38px; border:1px solid var(--line); border-radius:11px; background:var(--panel-2); color:var(--soft); padding:6px 11px; display:flex; flex-direction:column; justify-content:center; line-height:1.15; max-width:190px; }
+.user-chip strong { font-size:11px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.user-chip small { font-size:9px; color:var(--muted); margin-top:3px; }
+.auth-gate { position:fixed; inset:0; z-index:120; background:radial-gradient(circle at 70% 15%,rgba(77,168,255,.14),transparent 32%),radial-gradient(circle at 20% 85%,rgba(111,227,193,.10),transparent 35%),var(--bg); display:grid; place-items:center; padding:24px; }
+.auth-gate[hidden]{ display:none; }
+.auth-card { width:min(480px,96vw); border:1px solid var(--line-strong); background:linear-gradient(145deg,var(--panel),var(--panel-2)); border-radius:24px; box-shadow:0 28px 100px rgba(0,0,0,.38); padding:26px; }
+.auth-logo { display:flex; gap:13px; align-items:center; margin-bottom:22px; }
+.auth-logo .brand-mark { width:38px; height:38px; flex:none; }
+.auth-logo h2 { margin:0; font-size:21px; }
+.auth-logo p { margin:5px 0 0; color:var(--muted); font-size:11px; }
+.auth-tabs { display:flex; gap:7px; margin-bottom:16px; }
+.auth-tab { flex:1; min-height:36px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); color:var(--muted); }
+.auth-tab.active { color:var(--text); border-color:color-mix(in srgb,var(--accent) 38%,var(--line)); background:color-mix(in srgb,var(--accent) 8%,var(--panel-2)); }
+.auth-pane { display:none; }
+.auth-pane.active { display:block; }
+.auth-form { display:grid; gap:12px; }
+.auth-field { display:grid; gap:6px; }
+.auth-field label { font-size:10px; color:var(--muted); }
+.auth-field input { min-height:42px; width:100%; border:1px solid var(--line); border-radius:11px; background:var(--panel-2); color:var(--text); padding:0 12px; outline:none; }
+.auth-field input:focus { border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); }
+.auth-help { color:var(--muted); font-size:10px; line-height:1.55; margin:0 0 13px; }
+.auth-error { min-height:17px; color:var(--alert); font-size:10px; margin-top:8px; }
+.sync-cover { position:fixed; inset:0; z-index:90; background:rgba(2,8,14,.45); backdrop-filter:blur(3px); display:grid; place-items:center; }
+.sync-cover[hidden]{display:none}.sync-box{padding:15px 18px;border:1px solid var(--line-strong);border-radius:13px;background:var(--panel);box-shadow:var(--shadow);font-size:11px;color:var(--soft)}
+.readonly-note { font-size:9px; color:var(--watch); }
+@media(max-width:820px){ .user-chip{display:none}.online-pill{display:none} }
+
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <strong>FACILITY OPS</strong>
+          <small>BUILDING CONTROL SYSTEM</small>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="주 메뉴">
+        <button class="nav-item active" data-view="dashboard"><span>◈</span><b>대시보드</b></button>
+        <button class="nav-item" data-view="facilities"><span>▦</span><b>시설 관리</b></button>
+        <button class="nav-item" data-view="inspections"><span>✓</span><b>점검 관리</b></button>
+        <button class="nav-item" data-view="issues"><span>!</span><b>고장·민원</b></button>
+        <button class="nav-item" data-view="schedule"><span>□</span><b>작업 일정</b></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="system-pill" id="sidebarSync"><span class="pulse"></span>ONLINE SYNC</div>
+        <button class="ghost-btn full" id="syncBtn">지금 동기화</button>
+        <button class="ghost-btn full" id="exportBtn">데이터 내보내기</button>
+        <label class="ghost-btn full file-label">백업 데이터 가져오기<input id="importInput" type="file" accept="application/json" /></label>
+        <button class="ghost-btn full danger-subtle" id="logoutBtn">로그아웃</button>
+        <div class="version">FACILITY OPS v0.3.0 ONLINE</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">FACILITY OPERATIONS CENTER</div>
+          <h1 id="pageTitle">운영 대시보드</h1>
+        </div>
+        <div class="top-actions">
+          <div class="online-pill" id="onlinePill"><span class="online-dot"></span><span id="onlineText">연결 확인 중</span></div>
+          <div class="user-chip" id="userChip"><strong>로그인 확인 중</strong><small>FACILITY OPS USER</small></div>
+          <div class="clock" id="clock"></div>
+          <button class="icon-btn" id="themeBtn" title="테마 전환">◐</button>
+          <button class="primary-btn" id="globalAddBtn">+ 새 항목</button>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active"></section>
+      <section id="view-facilities" class="view"></section>
+      <section id="view-inspections" class="view"></section>
+      <section id="view-issues" class="view"></section>
+      <section id="view-schedule" class="view"></section>
+    </main>
+  </div>
+
+  <div class="auth-gate" id="authGate">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div><h2>FACILITY OPS</h2><p>v0.3 MULTI USER ONLINE</p></div>
+      </div>
+      <div class="auth-tabs" id="authTabs">
+        <button class="auth-tab active" type="button" data-auth-tab="login">로그인</button>
+        <button class="auth-tab" type="button" data-auth-tab="setup">연결 설정</button>
+      </div>
+      <div class="auth-pane active" id="authPane-login">
+        <p class="auth-help">등록된 직원 계정으로 로그인하면 같은 시설 데이터를 여러 PC에서 함께 사용할 수 있습니다.</p>
+        <form class="auth-form" id="loginForm">
+          <div class="auth-field"><label>이메일</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+          <div class="auth-field"><label>비밀번호</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+          <button class="primary-btn full" type="submit">로그인</button>
+        </form>
+        <div class="auth-error" id="loginError"></div>
+      </div>
+      <div class="auth-pane" id="authPane-setup">
+        <p class="auth-help">GitHub Pages에 올릴 때는 <b>config.js</b>에 아래 두 값을 한 번만 입력하면 모든 직원에게 공통 적용됩니다. Publishable Key만 사용하세요.</p>
+        <form class="auth-form" id="setupForm">
+          <div class="auth-field"><label>Supabase Project URL</label><input id="setupUrl" type="url" placeholder="https://xxxxx.supabase.co" required></div>
+          <div class="auth-field"><label>Supabase Publishable Key</label><input id="setupKey" type="text" placeholder="sb_publishable_..." required></div>
+          <button class="primary-btn full" type="submit">이 브라우저에서 연결 테스트</button>
+        </form>
+        <div class="auth-error" id="setupError"></div>
+      </div>
+    </div>
+  </div>
+  <div class="sync-cover" id="syncCover" hidden><div class="sync-box">공용 데이터 동기화 중...</div></div>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div>
+          <div class="eyebrow">FACILITY OPS / DATA ENTRY</div>
+          <h2 id="modalTitle">등록</h2>
+        </div>
+        <button class="icon-btn" id="modalClose" aria-label="닫기">×</button>
+      </div>
+      <form id="modalForm" class="modal-body"></form>
+      <div class="modal-foot">
+        <button class="ghost-btn" id="modalCancel" type="button">취소</button>
+        <button class="primary-btn" id="modalSubmit" type="submit" form="modalForm">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+const THEME_KEY = 'facility_ops_theme';
+const LOCAL_CONFIG_KEY = 'facility_ops_supabase_config';
+
+const seed = {
+  facilities: [
+    {id:'F-001',name:'중앙 냉난방기',location:'1층 로비',category:'냉난방',status:'normal',installDate:'2024-03-12',lastInspection:'2026-08-24',nextInspection:'2026-09-24',vendor:'한빛설비',note:'필터 월 1회 확인'},
+    {id:'F-002',name:'비상 방송 앰프',location:'방재실',category:'방송',status:'watch',installDate:'2023-09-02',lastInspection:'2026-08-18',nextInspection:'2026-09-05',vendor:'시스템테크',note:'간헐적 잡음 확인 필요'},
+    {id:'F-003',name:'소방 수신기',location:'1층 방재실',category:'소방',status:'normal',installDate:'2022-11-20',lastInspection:'2026-08-27',nextInspection:'2026-09-27',vendor:'세이프원',note:''},
+    {id:'F-004',name:'남자화장실 자동수전',location:'3층 화장실',category:'위생',status:'alert',installDate:'2025-02-14',lastInspection:'2026-08-29',nextInspection:'2026-08-31',vendor:'우림시설',note:'센서 오작동 접수'},
+    {id:'F-005',name:'전기 분전반 A',location:'EPS실',category:'전기',status:'normal',installDate:'2021-06-03',lastInspection:'2026-08-26',nextInspection:'2026-09-26',vendor:'동아전기',note:''},
+    {id:'F-006',name:'출입통제 리더기',location:'2층 출입구',category:'보안',status:'repair',installDate:'2025-10-01',lastInspection:'2026-08-30',nextInspection:'2026-09-02',vendor:'에스가드',note:'부품 교체 진행 중'}
+  ],
+  inspections: [
+    {id:'I-001',facilityId:'F-003',date:'2026-08-27',result:'normal',inspector:'시설담당',note:'표시등 및 회로 정상',nextDate:'2026-09-27'},
+    {id:'I-002',facilityId:'F-005',date:'2026-08-26',result:'normal',inspector:'시설담당',note:'발열 및 이취 없음',nextDate:'2026-09-26'},
+    {id:'I-003',facilityId:'F-002',date:'2026-08-18',result:'watch',inspector:'시설담당',note:'스피커 출력 시 잡음 간헐 발생',nextDate:'2026-09-05'},
+    {id:'I-004',facilityId:'F-004',date:'2026-08-29',result:'alert',inspector:'시설담당',note:'자동수전 센서 반응 불안정',nextDate:'2026-08-31'}
+  ],
+  issues: [
+    {id:'Q-001',facilityId:'F-004',date:'2026-08-29',title:'자동수전 센서 오작동',severity:'high',status:'open',cost:0,note:'업체 점검 요청 예정'},
+    {id:'Q-002',facilityId:'F-006',date:'2026-08-28',title:'출입통제 리더기 인식 불량',severity:'medium',status:'progress',cost:85000,note:'부품 확보 후 교체 진행'},
+    {id:'Q-003',facilityId:'F-001',date:'2026-08-11',completedDate:'2026-08-11',title:'냉방 풍량 저하',severity:'low',status:'done',cost:45000,note:'필터 교체 후 정상'}
+  ],
+  schedules: [
+    {id:'S-001',date:'2026-08-30',type:'점검',title:'주간 시설 순회점검',facilityId:'',status:'planned',note:'공용부 전체'},
+    {id:'S-002',date:'2026-08-31',type:'업체방문',title:'자동수전 현장 점검',facilityId:'F-004',status:'planned',note:''},
+    {id:'S-003',date:'2026-09-02',type:'수리',title:'출입통제 리더기 교체',facilityId:'F-006',status:'planned',note:''},
+    {id:'S-004',date:'2026-09-05',type:'점검',title:'비상 방송설비 재점검',facilityId:'F-002',status:'planned',note:''}
+  ]
+};
+
+let state = clone(seed);
+let dbClient = null;
+let currentUser = null;
+let currentProfile = null;
+let realtimeChannel = null;
+let remoteRefreshTimer = null;
+let currentView = 'dashboard';
+let currentFilter = 'all';
+let currentLocationFilter = 'all';
+let currentOverdueOnly = false;
+let currentFacilityId = null;
+let calendarCursor = new Date(2026, 7, 1);
+let modalContext = null;
+
+const titles = {dashboard:'운영 대시보드',facilities:'시설 관리',inspections:'점검 관리',issues:'고장·민원 관리',schedule:'작업 일정'};
+const statusText = {normal:'정상',watch:'주의',alert:'조치필요',repair:'수리중',open:'미처리',progress:'처리중',done:'완료'};
+const severityText = {low:'낮음',medium:'보통',high:'높음'};
+
+function clone(v){ return JSON.parse(JSON.stringify(v)); }
+function getRuntimeConfig(){
+  const fileCfg=window.FACILITY_OPS_CONFIG||{};
+  if(fileCfg.supabaseUrl && fileCfg.supabaseKey && !String(fileCfg.supabaseUrl).includes('YOUR_PROJECT')) return fileCfg;
+  try { return JSON.parse(localStorage.getItem(LOCAL_CONFIG_KEY)||'{}'); } catch { return {}; }
+}
+function saveRuntimeConfig(cfg){ localStorage.setItem(LOCAL_CONFIG_KEY,JSON.stringify(cfg)); }
+function setSyncing(on){ document.getElementById('syncCover').hidden=!on; }
+function setOnlineStatus(text,live=false){
+  const pill=document.getElementById('onlinePill'); const label=document.getElementById('onlineText');
+  if(label)label.textContent=text; if(pill)pill.classList.toggle('live',!!live);
+  const side=document.getElementById('sidebarSync'); if(side)side.innerHTML=`<span class="pulse"></span>${live?'ONLINE SYNC ACTIVE':'ONLINE CONNECTING'}`;
+}
+function tableFor(type){ return ({facility:'facilities',inspection:'inspections',issue:'issues',schedule:'schedules'})[type]; }
+function toDbRow(type,obj){
+  if(type==='facility') return {id:obj.id||undefined,name:obj.name,location:obj.location,category:obj.category,status:obj.status,install_date:obj.installDate||null,last_inspection:obj.lastInspection||null,next_inspection:obj.nextInspection||null,vendor:obj.vendor||'',note:obj.note||''};
+  if(type==='inspection') return {id:obj.id||undefined,facility_id:obj.facilityId||null,date:obj.date,result:obj.result,inspector:obj.inspector||'',note:obj.note||'',next_date:obj.nextDate||null};
+  if(type==='issue') return {id:obj.id||undefined,facility_id:obj.facilityId||null,date:obj.date,completed_date:obj.completedDate||null,title:obj.title,severity:obj.severity,status:obj.status,cost:Number(obj.cost||0),note:obj.note||''};
+  return {id:obj.id||undefined,date:obj.date,type:obj.type,title:obj.title,facility_id:obj.facilityId||null,status:obj.status,note:obj.note||''};
+}
+function stripUndefined(o){ return Object.fromEntries(Object.entries(o).filter(([,v])=>v!==undefined)); }
+function fromDbFacility(r){return {id:r.id,name:r.name||'',location:r.location||'',category:r.category||'',status:r.status||'normal',installDate:r.install_date||'',lastInspection:r.last_inspection||'',nextInspection:r.next_inspection||'',vendor:r.vendor||'',note:r.note||'',createdBy:r.created_by,updatedBy:r.updated_by,updatedAt:r.updated_at};}
+function fromDbInspection(r){return {id:r.id,facilityId:r.facility_id||'',date:r.date||'',result:r.result||'normal',inspector:r.inspector||'',note:r.note||'',nextDate:r.next_date||'',createdBy:r.created_by,updatedBy:r.updated_by,updatedAt:r.updated_at};}
+function fromDbIssue(r){return {id:r.id,facilityId:r.facility_id||'',date:r.date||'',completedDate:r.completed_date||'',title:r.title||'',severity:r.severity||'medium',status:r.status||'open',cost:Number(r.cost||0),note:r.note||'',createdBy:r.created_by,updatedBy:r.updated_by,updatedAt:r.updated_at};}
+function fromDbSchedule(r){return {id:r.id,date:r.date||'',type:r.type||'기타',title:r.title||'',facilityId:r.facility_id||'',status:r.status||'planned',note:r.note||'',createdBy:r.created_by,updatedBy:r.updated_by,updatedAt:r.updated_at};}
+async function loadRemoteData(showCover=true){
+  if(!dbClient||!currentUser)return;
+  if(showCover)setSyncing(true);
+  try{
+    const [f,i,q,s,p]=await Promise.all([
+      dbClient.from('facilities').select('*').order('name'),
+      dbClient.from('inspections').select('*').order('date',{ascending:false}),
+      dbClient.from('issues').select('*').order('date',{ascending:false}),
+      dbClient.from('schedules').select('*').order('date',{ascending:true}),
+      dbClient.from('profiles').select('*').eq('id',currentUser.id).maybeSingle()
+    ]);
+    const err=f.error||i.error||q.error||s.error||p.error; if(err)throw err;
+    state={facilities:(f.data||[]).map(fromDbFacility),inspections:(i.data||[]).map(fromDbInspection),issues:(q.data||[]).map(fromDbIssue),schedules:(s.data||[]).map(fromDbSchedule)};
+    currentProfile=p.data||{display_name:currentUser.email,role:'member'};
+    updateUserUI(); setOnlineStatus('실시간 연결',true); renderView(currentView);
+  }catch(err){ console.error(err); setOnlineStatus('동기화 오류',false); toast('공용 데이터 동기화에 실패했습니다.'); }
+  finally{ if(showCover)setSyncing(false); }
+}
+function scheduleRemoteRefresh(){ clearTimeout(remoteRefreshTimer); remoteRefreshTimer=setTimeout(()=>loadRemoteData(false),180); }
+function startRealtime(){
+  if(realtimeChannel){ dbClient.removeChannel(realtimeChannel); realtimeChannel=null; }
+  realtimeChannel=dbClient.channel('facility-ops-live');
+  ['facilities','inspections','issues','schedules'].forEach(table=>realtimeChannel.on('postgres_changes',{event:'*',schema:'public',table},scheduleRemoteRefresh));
+  realtimeChannel.subscribe(status=>{ if(status==='SUBSCRIBED')setOnlineStatus('실시간 연결',true); });
+}
+function canEdit(){ return (currentProfile?.role||'member')!=='viewer'; }
+function updateUserUI(){
+  const chip=document.getElementById('userChip'); if(!chip)return;
+  const name=currentProfile?.display_name||currentUser?.email||'사용자'; const role=currentProfile?.role||'member';
+  chip.innerHTML=`<strong>${esc(name)}</strong><small>${role==='admin'?'관리자':role==='viewer'?'열람 전용':'일반 사용자'}</small>`;
+  document.getElementById('globalAddBtn').style.display=canEdit()?'':'none';
+}
+async function initSupabase(cfg){
+  if(!window.supabase?.createClient) throw new Error('Supabase 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
+  dbClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const {data,error}=await dbClient.auth.getSession(); if(error)throw error;
+  currentUser=data.session?.user||null;
+  dbClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;if(currentUser){document.getElementById('authGate').hidden=true;loadRemoteData().then(startRealtime);}else{document.getElementById('authGate').hidden=false;setOnlineStatus('로그인 필요',false);}});
+  return currentUser;
+}
+function esc(s=''){ return String(s).replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function formatDate(d){ if(!d) return '-'; const x=new Date(d+'T00:00:00'); if(Number.isNaN(+x))return d; return `${x.getFullYear()}.${String(x.getMonth()+1).padStart(2,'0')}.${String(x.getDate()).padStart(2,'0')}`; }
+function money(v){ return Number(v||0).toLocaleString('ko-KR')+'원'; }
+function facilityName(id){ return state.facilities.find(f=>f.id===id)?.name || '공용/기타'; }
+function nextId(prefix, list){ const nums=list.map(x=>Number(String(x.id).split('-')[1])||0); return `${prefix}-${String(Math.max(0,...nums)+1).padStart(3,'0')}`; }
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function dayDiff(date){ if(!date)return null; const a=new Date(todayISO()+'T00:00:00'); const b=new Date(date+'T00:00:00'); return Math.round((b-a)/86400000); }
+function isOverdue(f){ const d=dayDiff(f.nextInspection); return d!==null && d<0; }
+function dueBadge(f){ const d=dayDiff(f.nextInspection); if(d===null)return ''; if(d<0)return `<span class="due-badge overdue">${Math.abs(d)}일 지연</span>`; if(d<=7)return `<span class="due-badge soon">D-${d}</span>`; return ''; }
+function scheduleStatusText(v){ return v==='done'?'완료':'예정'; }
+
+function setView(view){
+  currentView=view;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  document.getElementById('pageTitle').textContent=titles[view];
+  renderView(view);
+}
+
+function renderView(view){
+  ({dashboard:renderDashboard,facilities:renderFacilities,inspections:renderInspections,issues:renderIssues,schedule:renderSchedule}[view])();
+}
+
+function renderDashboard(){
+  const counts = Object.fromEntries(['normal','watch','alert','repair'].map(s=>[s,state.facilities.filter(f=>f.status===s).length]));
+  const openIssues=state.issues.filter(i=>i.status!=='done').length;
+  const today=todayISO();
+  const todayTasks=state.schedules.filter(s=>s.date===today).length;
+  const overdue=state.facilities.filter(isOverdue).length;
+  const month = today.slice(0,7);
+  const monthInspections=state.inspections.filter(i=>i.date.startsWith(month)).length;
+  const monthTargets=Math.max(1,state.facilities.length);
+  const progress=Math.min(100,Math.round(monthInspections/monthTargets*100));
+  const catCounts={}; state.facilities.forEach(f=>catCounts[f.category]=(catCounts[f.category]||0)+1);
+  const maxCat=Math.max(1,...Object.values(catCounts));
+
+  const activities=[
+    ...state.inspections.map(x=>({date:x.date,title:`${facilityName(x.facilityId)} 점검`,sub:`결과 · ${statusText[x.result]||x.result}`,color:x.result})),
+    ...state.issues.map(x=>({date:x.completedDate||x.date,title:x.title,sub:`고장/민원 · ${statusText[x.status]||x.status}`,color:x.status==='done'?'normal':x.status==='progress'?'watch':'alert'})),
+    ...state.schedules.map(x=>({date:x.date,title:x.title,sub:`일정 · ${x.type}`,color:x.status==='done'?'normal':'repair'}))
+  ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7);
+
+  const dash=document.getElementById('view-dashboard');
+  dash.innerHTML=`
+    <div class="status-grid">
+      ${statusCard('정상 시설',counts.normal,'정상 운영 중','normal','normal')}
+      ${statusCard('주의 시설',counts.watch,'추적 관찰 필요','watch','watch')}
+      ${statusCard('조치 필요',counts.alert,'우선 확인 대상','alert','alert')}
+      ${statusCard('수리 진행',counts.repair,'작업 진행 중','repair','repair')}
+    </div>
+    <div class="metric-row">
+      ${metric('오늘 작업',todayTasks,'오늘 등록된 일정')}
+      ${metric('미처리 이슈',openIssues,'완료 전 고장·민원')}
+      ${metric('점검 기한 초과',overdue,'클릭하여 지연 시설 확인','overdue')}
+    </div>
+    <div class="dashboard-grid">
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">LIVE FACILITY STATUS</div><h3>시설 상태 현황</h3></div><small>${state.facilities.length}개 시설 등록</small></div>
+        ${facilityMiniTable()}
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">MONTHLY CONTROL</div><h3>월간 점검 진행률</h3></div><small>${month.replace('-','.')} 기준</small></div>
+        <div class="progress-wrap">
+          <div class="donut" style="--progress:${progress}%"><div class="donut-content"><strong>${progress}%</strong><small>${monthInspections}/${monthTargets} 점검</small></div></div>
+          <div class="progress-list">
+            ${Object.entries(catCounts).slice(0,5).map(([k,v])=>`<div class="progress-line"><span>${esc(k)}</span><div class="bar"><span style="width:${Math.round(v/maxCat*100)}%"></span></div><b>${v}</b></div>`).join('') || '<div class="empty">시설을 등록하면 분류 현황이 표시됩니다.</div>'}
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">RECENT ACTIVITY</div><h3>최근 운영 기록</h3></div><small>점검·이슈·일정 통합</small></div>
+        <div class="activity-list">${activities.length?activities.map(a=>activity(a)).join(''):'<div class="empty">기록이 없습니다.</div>'}</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">ATTENTION QUEUE</div><h3>우선 확인 항목</h3></div><small>${openIssues+counts.alert+counts.watch+overdue}건 감시</small></div>
+        <div class="alert-list">${attentionList()}</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">RECENT RESOLUTION</div><h3>최근 조치 완료</h3></div><small>완료 처리된 이력</small></div>
+        <div class="activity-list">${recentResolvedList()}</div>
+      </div>
+    </div>`;
+  dash.onclick=e=>{
+    const card=e.target.closest('[data-dashboard-filter]');
+    const late=e.target.closest('[data-dashboard-overdue]');
+    const open=e.target.closest('[data-open-facility]');
+    if(card){ currentFilter=card.dataset.dashboardFilter; currentLocationFilter='all'; currentOverdueOnly=false; currentFacilityId=null; setView('facilities'); return; }
+    if(late){ currentFilter='all'; currentLocationFilter='all'; currentOverdueOnly=true; currentFacilityId=null; setView('facilities'); return; }
+    if(open){ currentFacilityId=open.dataset.openFacility; setView('facilities'); }
+  };
+}
+function statusCard(label,value,sub,cls,filter=''){return `<div class="status-card ${cls} ${filter?'clickable':''}" ${filter?`data-dashboard-filter="${filter}"`:''}><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`}
+function metric(label,value,foot,action=''){return `<div class="metric-card ${action?'clickable':''}" ${action==='overdue'?'data-dashboard-overdue="1"':''}><div class="m-label">${label}</div><div class="m-value">${value}</div><div class="m-foot">${foot}</div></div>`}
+function activity(a){return `<div class="activity-item"><span class="activity-dot status-${a.color}"></span><div class="activity-main"><strong>${esc(a.title)}</strong><small>${esc(a.sub)}</small></div><span class="activity-time">${formatDate(a.date)}</span></div>`}
+function facilityMiniTable(){
+  const rows=state.facilities.slice().sort((a,b)=>['alert','repair','watch','normal'].indexOf(a.status)-['alert','repair','watch','normal'].indexOf(b.status)).slice(0,7);
+  if(!rows.length)return '<div class="empty">등록된 시설이 없습니다.</div>';
+  return `<table class="data-table"><thead><tr><th>시설</th><th>위치</th><th>상태</th><th>다음 점검</th></tr></thead><tbody>${rows.map(f=>`<tr class="facility-row" data-open-facility="${f.id}"><td class="name-cell"><strong>${esc(f.name)}</strong><small>${esc(f.category)}</small></td><td>${esc(f.location)}</td><td>${badge(f.status)}</td><td><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${formatDate(f.nextInspection)} ${dueBadge(f)}</div></td></tr>`).join('')}</tbody></table>`;
+}
+function attentionList(){
+  const items=[
+    ...state.facilities.filter(f=>isOverdue(f)&&f.status==='normal').map(f=>({title:`점검 지연 · ${f.name}`,sub:`${f.location} · ${Math.abs(dayDiff(f.nextInspection))}일 초과`,color:'alert'})),
+    ...state.facilities.filter(f=>['alert','watch','repair'].includes(f.status)).map(f=>({title:f.name,sub:`${f.location} · ${statusText[f.status]}`,color:f.status})),
+    ...state.issues.filter(i=>i.status!=='done').map(i=>({title:i.title,sub:`${facilityName(i.facilityId)} · ${statusText[i.status]}`,color:i.status==='progress'?'watch':'alert'}))
+  ].slice(0,6);
+  return items.length?items.map(x=>`<div class="activity-item"><span class="activity-dot status-${x.color}"></span><div class="activity-main"><strong>${esc(x.title)}</strong><small>${esc(x.sub)}</small></div></div>`).join(''):'<div class="empty">우선 확인 항목이 없습니다.</div>';
+}
+function recentResolvedList(){
+  const rows=[
+    ...state.issues.filter(i=>i.status==='done').map(i=>({date:i.completedDate||i.date,title:i.title,sub:`${facilityName(i.facilityId)} · 조치 완료`,color:'normal'})),
+    ...state.schedules.filter(s=>s.status==='done').map(s=>({date:s.date,title:s.title,sub:`${facilityName(s.facilityId)} · 일정 완료`,color:'normal'}))
+  ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  return rows.length?rows.map(activity).join(''):'<div class="empty">완료 처리된 조치가 아직 없습니다.</div>';
+}
+function badge(status){return `<span class="status-badge status-${status}">${statusText[status]||esc(status)}</span>`}
+
+function renderFacilities(){
+  const view=document.getElementById('view-facilities');
+  if(currentFacilityId && state.facilities.some(f=>f.id===currentFacilityId)){ renderFacilityDetail(currentFacilityId); return; }
+  currentFacilityId=null;
+  document.getElementById('pageTitle').textContent=titles.facilities;
+  const locations=[...new Set(state.facilities.map(f=>f.location).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+  view.innerHTML=`${sectionHead('등록 시설','시설별 상태·점검주기·업체 정보를 관리합니다.',state.facilities.length,'facility')}
+  <div class="panel">
+    <div class="table-toolbar">
+      <div class="searchbox">⌕<input id="facilitySearch" placeholder="시설명, 위치, 분류 검색" /></div>
+      <div class="toolbar-cluster">
+        <select class="filter-select" id="locationFilter"><option value="all">전체 위치</option>${locations.map(x=>`<option value="${esc(x)}" ${currentLocationFilter===x?'selected':''}>${esc(x)}</option>`).join('')}</select>
+        <div class="filter-row">${['all','normal','watch','alert','repair'].map(s=>`<button class="filter-btn ${currentFilter===s?'active':''}" data-fstatus="${s}">${s==='all'?'전체':statusText[s]}</button>`).join('')}<button class="filter-btn warn-filter ${currentOverdueOnly?'active':''}" id="overdueFilter">점검 지연</button></div>
+      </div>
+    </div>
+    <div id="facilityTable"></div>
+  </div>`;
+  const draw=()=>{
+    const q=(document.getElementById('facilitySearch')?.value||'').toLowerCase();
+    const rows=state.facilities.filter(f=>(currentFilter==='all'||f.status===currentFilter)&&(currentLocationFilter==='all'||f.location===currentLocationFilter)&&(!currentOverdueOnly||isOverdue(f))&&[f.name,f.location,f.category,f.vendor].join(' ').toLowerCase().includes(q));
+    document.getElementById('facilityTable').innerHTML=rows.length?`<table class="data-table"><thead><tr><th>시설명</th><th>위치</th><th>분류</th><th>상태</th><th>최근 점검</th><th>다음 점검</th><th>업체</th><th></th></tr></thead><tbody>${rows.map(f=>`<tr class="facility-row" data-open-facility="${f.id}"><td class="name-cell"><strong>${esc(f.name)}</strong><small>${esc(f.id)}</small></td><td>${esc(f.location)}</td><td><span class="tag">${esc(f.category)}</span></td><td>${badge(f.status)}</td><td>${formatDate(f.lastInspection)}</td><td><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${formatDate(f.nextInspection)} ${dueBadge(f)}</div></td><td>${esc(f.vendor||'-')}</td><td><div class="row-actions"><button class="mini-btn" data-detail-facility="${f.id}">상세</button><button class="mini-btn" data-edit-facility="${f.id}">수정</button><button class="mini-btn" data-del-facility="${f.id}">삭제</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">조건에 맞는 시설이 없습니다.</div>';
+  };
+  document.getElementById('facilitySearch').addEventListener('input',draw);
+  document.getElementById('locationFilter').onchange=e=>{currentLocationFilter=e.target.value;draw();};
+  document.getElementById('overdueFilter').onclick=()=>{currentOverdueOnly=!currentOverdueOnly;renderFacilities();};
+  view.querySelectorAll('[data-fstatus]').forEach(b=>b.onclick=()=>{currentFilter=b.dataset.fstatus;renderFacilities();});
+  view.onclick=e=>{
+    const edit=e.target.closest('[data-edit-facility]'); const del=e.target.closest('[data-del-facility]'); const detail=e.target.closest('[data-detail-facility]'); const row=e.target.closest('[data-open-facility]');
+    if(edit){openModal('facility',edit.dataset.editFacility);return;}
+    if(del){deleteItem('facility',del.dataset.delFacility);return;}
+    if(detail){currentFacilityId=detail.dataset.detailFacility;renderFacilities();return;}
+    if(row){currentFacilityId=row.dataset.openFacility;renderFacilities();}
+  };
+  draw();
+}
+
+function renderFacilityDetail(id){
+  const f=state.facilities.find(x=>x.id===id); if(!f){currentFacilityId=null;renderFacilities();return;}
+  document.getElementById('pageTitle').textContent='시설 상세';
+  const inspections=state.inspections.filter(x=>x.facilityId===id).sort((a,b)=>b.date.localeCompare(a.date));
+  const issues=state.issues.filter(x=>x.facilityId===id).sort((a,b)=>(b.completedDate||b.date).localeCompare(a.completedDate||a.date));
+  const schedules=state.schedules.filter(x=>x.facilityId===id).sort((a,b)=>b.date.localeCompare(a.date));
+  const unresolved=issues.filter(x=>x.status!=='done').length;
+  const d=dayDiff(f.nextInspection);
+  const timeline=[
+    ...inspections.map(x=>({kind:'inspection',id:x.id,date:x.date,title:`점검 · ${statusText[x.result]||x.result}`,sub:`${x.inspector||'점검자 미입력'}${x.note?' · '+x.note:''}`,status:x.result})),
+    ...issues.map(x=>({kind:'issue',id:x.id,date:x.status==='done'?(x.completedDate||x.date):x.date,title:`${x.status==='done'?'조치 완료':'고장·민원'} · ${x.title}`,sub:`${statusText[x.status]||x.status} · 긴급도 ${severityText[x.severity]||x.severity} · ${money(x.cost)}${x.note?' · '+x.note:''}`,status:x.status})),
+    ...schedules.map(x=>({kind:'schedule',id:x.id,date:x.date,title:`일정 · ${x.title}`,sub:`${x.type} · ${scheduleStatusText(x.status)}${x.note?' · '+x.note:''}`,status:x.status}))
+  ].sort((a,b)=>b.date.localeCompare(a.date));
+  const warning=d!==null&&d<0?`<div class="detail-warning"><b>!</b><span>다음 점검일이 <strong>${Math.abs(d)}일</strong> 지났습니다. 점검 등록 후 다음 점검일을 갱신해 주세요.</span></div>`:d!==null&&d<=7?`<div class="detail-warning watch"><b>!</b><span>다음 점검까지 <strong>${d}일</strong> 남았습니다.</span></div>`:'';
+  const view=document.getElementById('view-facilities');
+  view.innerHTML=`<div class="detail-shell">
+    <div>
+      <button class="back-link" data-back-facilities>← 시설 목록으로</button>
+      <div class="detail-hero">
+        <div class="detail-head">
+          <div class="detail-title-wrap"><div class="detail-code">${esc(f.id.replace('F-','F'))}</div><div><div class="eyebrow">FACILITY PROFILE</div><h2>${esc(f.name)}</h2><div class="detail-sub"><span>${esc(f.location)}</span><span>·</span><span>${esc(f.category)}</span><span>·</span>${badge(f.status)} ${dueBadge(f)}</div></div></div>
+          <div class="detail-actions"><button class="ghost-btn" data-detail-edit="${f.id}">시설 정보 수정</button><button class="primary-btn" data-detail-add="inspection">+ 점검 등록</button></div>
+        </div>
+        ${warning}
+        <div class="detail-metrics">
+          <div class="detail-metric"><small>현재 상태</small><strong>${statusText[f.status]||f.status}</strong></div>
+          <div class="detail-metric"><small>최근 점검</small><strong>${formatDate(f.lastInspection)}</strong></div>
+          <div class="detail-metric"><small>다음 점검</small><strong>${formatDate(f.nextInspection)}</strong></div>
+          <div class="detail-metric"><small>고장·민원</small><strong>${issues.length}건 <span style="font-size:9px;color:var(--muted)">/ 미처리 ${unresolved}</span></strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="detail-grid">
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">FACILITY INFO</div><h3>기본 정보</h3></div><small>${esc(f.id)}</small></div>
+        <div class="info-list">
+          <div class="info-row"><span>위치</span><strong>${esc(f.location||'-')}</strong></div>
+          <div class="info-row"><span>분류</span><strong>${esc(f.category||'-')}</strong></div>
+          <div class="info-row"><span>설치일</span><strong>${formatDate(f.installDate)}</strong></div>
+          <div class="info-row"><span>담당 업체</span><strong>${esc(f.vendor||'-')}</strong></div>
+          <div class="info-row"><span>비고</span><strong>${esc(f.note||'-')}</strong></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">QUICK CONTROL</div><h3>바로 등록</h3></div><small>현재 시설 자동 선택</small></div>
+        <div class="quick-actions">
+          <button class="quick-action" data-detail-add="inspection"><b>✓ 점검 등록</b><small>점검 결과와 다음 점검일 기록</small></button>
+          <button class="quick-action" data-detail-add="issue"><b>! 고장·민원 등록</b><small>이상 발생과 조치 상태 기록</small></button>
+          <button class="quick-action" data-detail-add="schedule"><b>□ 일정 등록</b><small>업체 방문·수리·점검 일정 등록</small></button>
+        </div>
+        <div class="panel-title" style="margin-top:5px"><div><div class="eyebrow">LIFECYCLE HISTORY</div><h3>통합 이력</h3></div><small>${timeline.length}건</small></div>
+        <div class="timeline">${timeline.length?timeline.map(t=>timelineHtml(t)).join(''):'<div class="empty">이 시설의 기록이 아직 없습니다.</div>'}</div>
+      </div>
+    </div>
+  </div>`;
+  view.onclick=e=>{
+    if(e.target.closest('[data-back-facilities]')){currentFacilityId=null;renderFacilities();return;}
+    const edit=e.target.closest('[data-detail-edit]'); if(edit){openModal('facility',edit.dataset.detailEdit);return;}
+    const add=e.target.closest('[data-detail-add]'); if(add){openModal(add.dataset.detailAdd,null,{facilityId:id});return;}
+    const tedit=e.target.closest('[data-timeline-edit]'); if(tedit){openModal(tedit.dataset.timelineEdit,tedit.dataset.itemId);}
+  };
+}
+function timelineHtml(t){
+  const icon=t.kind==='inspection'?'✓':t.kind==='issue'?(t.status==='done'?'✓':'!'):'□';
+  const cls=t.kind==='issue'?(t.status==='done'?'done':'issue'):t.kind==='schedule'?'schedule':'';
+  return `<div class="timeline-item"><div class="timeline-icon ${cls}">${icon}</div><div class="timeline-main"><strong>${esc(t.title)}</strong><small>${esc(t.sub)}</small></div><div class="timeline-side"><time>${formatDate(t.date)}</time><button class="mini-btn" data-timeline-edit="${t.kind}" data-item-id="${t.id}">수정</button></div></div>`;
+}
+
+function renderInspections(){
+  const rows=state.inspections.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('view-inspections').innerHTML=`${sectionHead('점검 기록','시설 점검 결과와 다음 점검일을 누적 관리합니다.',rows.length,'inspection')}
+    <div class="panel">${rows.length?`<table class="data-table"><thead><tr><th>점검일</th><th>시설</th><th>결과</th><th>점검자</th><th>내용</th><th>다음 점검</th><th></th></tr></thead><tbody>${rows.map(i=>`<tr><td>${formatDate(i.date)}</td><td class="name-cell"><strong>${esc(facilityName(i.facilityId))}</strong><small>${esc(i.id)}</small></td><td>${badge(i.result)}</td><td>${esc(i.inspector||'-')}</td><td>${esc(i.note||'-')}</td><td>${formatDate(i.nextDate)}</td><td><div class="row-actions"><button class="mini-btn" data-edit-inspection="${i.id}">수정</button><button class="mini-btn" data-del-inspection="${i.id}">삭제</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">점검 기록이 없습니다.</div>'}</div>`;
+  const view=document.getElementById('view-inspections'); view.onclick=e=>{const edit=e.target.dataset.editInspection,del=e.target.dataset.delInspection;if(edit)openModal('inspection',edit);if(del)deleteItem('inspection',del)};
+}
+
+function renderIssues(){
+  const rows=state.issues.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('view-issues').innerHTML=`${sectionHead('고장·민원','발생부터 조치 완료까지 상태와 비용을 추적합니다.',rows.length,'issue')}
+    <div class="panel">${rows.length?`<table class="data-table"><thead><tr><th>발생일</th><th>제목</th><th>시설</th><th>긴급도</th><th>상태</th><th>비용</th><th>메모</th><th></th></tr></thead><tbody>${rows.map(i=>`<tr><td>${formatDate(i.date)}</td><td class="name-cell"><strong>${esc(i.title)}</strong><small>${esc(i.id)}</small></td><td>${esc(facilityName(i.facilityId))}</td><td><span class="tag">${severityText[i.severity]||i.severity}</span></td><td>${badge(i.status)}</td><td>${money(i.cost)}</td><td>${esc(i.note||'-')}</td><td><div class="row-actions"><button class="mini-btn" data-edit-issue="${i.id}">수정</button><button class="mini-btn" data-del-issue="${i.id}">삭제</button></div></td></tr>`).join('')}</tbody></table>`:'<div class="empty">등록된 고장·민원이 없습니다.</div>'}</div>`;
+  const view=document.getElementById('view-issues'); view.onclick=e=>{const edit=e.target.dataset.editIssue,del=e.target.dataset.delIssue;if(edit)openModal('issue',edit);if(del)deleteItem('issue',del)};
+}
+
+function renderSchedule(){
+  const y=calendarCursor.getFullYear(),m=calendarCursor.getMonth();
+  const first=new Date(y,m,1); const start=new Date(y,m,1-first.getDay());
+  const days=[]; for(let i=0;i<42;i++){ const d=new Date(start);d.setDate(start.getDate()+i);days.push(d); }
+  const events=state.schedules.slice().sort((a,b)=>a.date.localeCompare(b.date));
+  document.getElementById('view-schedule').innerHTML=`${sectionHead('작업 일정','정기점검·수리·업체 방문 등 시설 작업을 달력으로 확인합니다.',events.length,'schedule')}
+    <div class="schedule-layout">
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">MONTHLY SCHEDULE</div><h3>작업 캘린더</h3></div><div class="month-nav"><button class="mini-btn" id="prevMonth">←</button><div class="month-title">${y}년 ${m+1}월</div><button class="mini-btn" id="nextMonth">→</button></div></div>
+        <div class="calendar">${['일','월','화','수','목','금','토'].map(x=>`<div class="cal-head">${x}</div>`).join('')}${days.map(d=>calDay(d,m)).join('')}</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div><div class="eyebrow">UPCOMING WORK</div><h3>예정 작업</h3></div><small>${events.length}건</small></div>
+        <div class="activity-list">${events.length?events.slice(0,12).map(s=>`<div class="activity-item"><span class="activity-dot"></span><div class="activity-main"><strong>${esc(s.title)}</strong><small>${esc(s.type)} · ${esc(facilityName(s.facilityId))}${s.note?' · '+esc(s.note):''}</small></div><div><span class="activity-time">${formatDate(s.date)}</span><div class="row-actions" style="margin-top:5px"><button class="mini-btn" data-edit-schedule="${s.id}">수정</button><button class="mini-btn" data-del-schedule="${s.id}">삭제</button></div></div></div>`).join(''):'<div class="empty">등록된 일정이 없습니다.</div>'}</div>
+      </div>
+    </div>`;
+  document.getElementById('prevMonth').onclick=()=>{calendarCursor=new Date(y,m-1,1);renderSchedule();};
+  document.getElementById('nextMonth').onclick=()=>{calendarCursor=new Date(y,m+1,1);renderSchedule();};
+  const view=document.getElementById('view-schedule'); view.onclick=e=>{const edit=e.target.dataset.editSchedule,del=e.target.dataset.delSchedule;if(edit)openModal('schedule',edit);if(del)deleteItem('schedule',del)};
+}
+function calDay(d,currentMonth){const iso=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;const ev=state.schedules.filter(s=>s.date===iso);return `<div class="cal-day ${d.getMonth()!==currentMonth?'other':''} ${iso===todayISO()?'today':''}"><div class="cal-num">${d.getDate()}</div><div class="cal-events">${ev.slice(0,3).map(s=>`<div class="cal-event" title="${esc(s.title)}">${esc(s.title)}</div>`).join('')}${ev.length>3?`<div class="cal-event">+${ev.length-3}건</div>`:''}</div></div>`}
+
+function sectionHead(title,desc,count,type){return `<div class="section-head"><div><h2>${title}</h2><p>${desc}</p></div><div style="display:flex;gap:8px;align-items:center"><span class="count-pill">${count}건</span><button class="primary-btn" data-add-type="${type}">+ 등록</button></div></div>`}
+
+const modalSchemas={
+  facility:{title:'시설 등록',fields:[['name','시설명','text',true],['location','위치','text',true],['category','분류','text',true],['status','상태','select',true,{normal:'정상',watch:'주의',alert:'조치필요',repair:'수리중'}],['installDate','설치일','date'],['lastInspection','최근 점검일','date'],['nextInspection','다음 점검일','date'],['vendor','담당 업체','text'],['note','비고','textarea']]},
+  inspection:{title:'점검 기록 등록',fields:[['facilityId','시설','facility',true],['date','점검일','date',true],['result','점검 결과','select',true,{normal:'정상',watch:'주의',alert:'조치필요',repair:'수리중'}],['inspector','점검자','text'],['nextDate','다음 점검일','date'],['note','점검 내용','textarea']]},
+  issue:{title:'고장·민원 등록',fields:[['date','발생일','date',true],['facilityId','관련 시설','facility'],['title','제목','text',true],['severity','긴급도','select',true,{low:'낮음',medium:'보통',high:'높음'}],['status','처리 상태','select',true,{open:'미처리',progress:'처리중',done:'완료'}],['completedDate','완료일','date'],['cost','비용','number'],['note','조치 메모','textarea']]},
+  schedule:{title:'작업 일정 등록',fields:[['date','작업일','date',true],['type','유형','select',true,{점검:'점검',수리:'수리',업체방문:'업체방문',공사:'공사',청소:'청소',기타:'기타'}],['title','일정명','text',true],['facilityId','관련 시설','facility'],['status','상태','select',true,{planned:'예정',done:'완료'}],['note','메모','textarea']]}
+};
+const listMap={facility:'facilities',inspection:'inspections',issue:'issues',schedule:'schedules'};
+function openModal(type,id=null,prefill={}){
+  if(!canEdit()){toast('열람 전용 계정은 등록·수정할 수 없습니다.');return;}
+  const schema=modalSchemas[type]; const list=state[listMap[type]]; const item=id?(list.find(x=>x.id===id)||{}):prefill;
+  modalContext={type,id}; document.getElementById('modalTitle').textContent=(id?'수정 · ':'')+schema.title;
+  const form=document.getElementById('modalForm');
+  form.innerHTML=schema.fields.map(f=>fieldHtml(f,item[f[0]]??defaultField(type,f[0]))).join('');
+  document.getElementById('modalBackdrop').hidden=false;
+}
+function defaultField(type,key){if(key==='date')return todayISO();if(key==='status')return type==='facility'?'normal':type==='issue'?'open':type==='schedule'?'planned':'';if(key==='result')return 'normal';if(key==='severity')return 'medium';return '';}
+function fieldHtml([key,label,type,required,options],value){
+  const full=type==='textarea'?' full-span':''; const req=required?'required':'';
+  if(type==='textarea')return `<div class="field${full}"><label>${label}</label><textarea name="${key}" ${req}>${esc(value)}</textarea></div>`;
+  if(type==='select')return `<div class="field"><label>${label}</label><select name="${key}" ${req}>${Object.entries(options).map(([v,t])=>`<option value="${esc(v)}" ${String(value)===v?'selected':''}>${esc(t)}</option>`).join('')}</select></div>`;
+  if(type==='facility')return `<div class="field"><label>${label}</label><select name="${key}" ${req}><option value="">공용/기타</option>${state.facilities.map(f=>`<option value="${f.id}" ${String(value)===f.id?'selected':''}>${esc(f.name)} · ${esc(f.location)}</option>`).join('')}</select></div>`;
+  return `<div class="field"><label>${label}</label><input name="${key}" type="${type}" value="${esc(value)}" ${req} /></div>`;
+}
+function closeModal(){document.getElementById('modalBackdrop').hidden=true;modalContext=null;}
+async function submitModal(e){
+  e.preventDefault(); if(!modalContext||!dbClient)return; if(!canEdit()){toast('열람 전용 계정은 수정할 수 없습니다.');return;}
+  const {type,id}=modalContext; const fd=new FormData(e.target); const obj=Object.fromEntries(fd.entries());
+  if('cost' in obj)obj.cost=Number(obj.cost||0);
+  if(type==='issue'){ if(obj.status==='done'&&!obj.completedDate)obj.completedDate=todayISO(); if(obj.status!=='done')obj.completedDate=''; }
+  setSyncing(true);
+  try{
+    const row=stripUndefined(toDbRow(type,{...(id?{id}:{}),...obj})); let result;
+    if(id) result=await dbClient.from(tableFor(type)).update(row).eq('id',id);
+    else { delete row.id; result=await dbClient.from(tableFor(type)).insert(row); }
+    if(result.error)throw result.error;
+    if(type==='inspection'&&obj.facilityId){
+      const patch={last_inspection:obj.date,status:obj.result}; if(obj.nextDate)patch.next_inspection=obj.nextDate;
+      const fr=await dbClient.from('facilities').update(patch).eq('id',obj.facilityId); if(fr.error)throw fr.error;
+    }
+    closeModal(); await loadRemoteData(false); toast(id?'항목을 수정했습니다.':'새 항목을 등록했습니다.');
+  }catch(err){console.error(err);alert('저장하지 못했습니다.\n\n'+(err.message||err));}
+  finally{setSyncing(false);}
+}
+async function deleteItem(type,id){
+  if(!canEdit()){toast('열람 전용 계정은 삭제할 수 없습니다.');return;}
+  if(!confirm('이 항목을 공용 데이터에서 삭제할까요?'))return;
+  setSyncing(true);
+  try{const r=await dbClient.from(tableFor(type)).delete().eq('id',id);if(r.error)throw r.error;if(type==='facility'&&currentFacilityId===id)currentFacilityId=null;await loadRemoteData(false);toast('항목을 삭제했습니다.');}
+  catch(err){console.error(err);alert('삭제하지 못했습니다.\n\n'+(err.message||err));}
+  finally{setSyncing(false);}
+}
+function toast(msg){const el=document.createElement('div');el.className='toast';el.innerHTML=`<strong>FACILITY OPS</strong>${esc(msg)}`;document.getElementById('toastRegion').append(el);setTimeout(()=>el.remove(),2600);}
+
+function exportData(){const blob=new Blob([JSON.stringify({...state,exportedAt:new Date().toISOString(),version:'0.3.0'},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`facility-ops-online-backup-${todayISO()}.json`;a.click();URL.revokeObjectURL(a.href);toast('공용 데이터 백업 파일을 만들었습니다.');}
+async function importParsedData(parsed){
+  if(!canEdit())throw new Error('열람 전용 계정은 가져올 수 없습니다.');
+  if(!parsed.facilities||!parsed.inspections||!parsed.issues||!parsed.schedules)throw new Error('FACILITY OPS 백업 형식이 아닙니다.');
+  setSyncing(true);
+  try{
+    const groups=[['facility',parsed.facilities],['inspection',parsed.inspections],['issue',parsed.issues],['schedule',parsed.schedules]];
+    for(const [type,items] of groups){ if(!items.length)continue; const rows=items.map(x=>stripUndefined(toDbRow(type,x))); const r=await dbClient.from(tableFor(type)).upsert(rows,{onConflict:'id'}); if(r.error)throw r.error; }
+    await loadRemoteData(false); toast('백업 데이터를 공용 DB에 반영했습니다.');
+  }finally{setSyncing(false);}
+}
+function importData(file){const r=new FileReader();r.onload=async()=>{try{const parsed=JSON.parse(r.result);if(!confirm(`백업 데이터 ${parsed.facilities?.length||0}개 시설 등을 공용 DB에 추가/갱신할까요?`))return;await importParsedData(parsed);}catch(err){alert('가져오기에 실패했습니다.\n\n'+(err.message||err));}};r.readAsText(file);}
+function applyTheme(){const light=localStorage.getItem(THEME_KEY)==='light';document.body.classList.toggle('light',light);}
+function toggleTheme(){localStorage.setItem(THEME_KEY,document.body.classList.contains('light')?'dark':'light');applyTheme();}
+function updateClock(){const d=new Date();document.getElementById('clock').innerHTML=`${d.toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'})}<br>${d.toLocaleTimeString('ko-KR',{hour12:false})}`;}
+
+function setAuthTab(tab){document.querySelectorAll('.auth-tab').forEach(x=>x.classList.toggle('active',x.dataset.authTab===tab));document.querySelectorAll('.auth-pane').forEach(x=>x.classList.toggle('active',x.id==='authPane-'+tab));}
+async function loginWithPassword(email,password){
+  document.getElementById('loginError').textContent='';
+  try{setOnlineStatus('로그인 중',false);const {data,error}=await dbClient.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;document.getElementById('authGate').hidden=true;await loadRemoteData();startRealtime();}
+  catch(err){document.getElementById('loginError').textContent=err.message||'로그인에 실패했습니다.';setOnlineStatus('로그인 필요',false);}
+}
+async function bootConnection(cfg){
+  try{
+    setOnlineStatus('연결 확인 중',false); const user=await initSupabase(cfg);
+    if(user){document.getElementById('authGate').hidden=true;await loadRemoteData();startRealtime();}
+    else {document.getElementById('authGate').hidden=false;setOnlineStatus('로그인 필요',false);}
+  }catch(err){console.error(err);document.getElementById('authGate').hidden=false;setAuthTab('setup');document.getElementById('setupError').textContent=err.message||'Supabase 연결을 확인해 주세요.';setOnlineStatus('연결 설정 필요',false);}
+}
+async function init(){
+  applyTheme(); updateClock(); setInterval(updateClock,1000);
+  document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>{if(b.dataset.view==='facilities')currentFacilityId=null;setView(b.dataset.view);});
+  document.getElementById('themeBtn').onclick=toggleTheme;
+  document.getElementById('syncBtn').onclick=()=>loadRemoteData();
+  document.getElementById('exportBtn').onclick=exportData;
+  document.getElementById('importInput').onchange=e=>{if(e.target.files?.[0])importData(e.target.files[0]);e.target.value='';};
+  document.getElementById('logoutBtn').onclick=async()=>{if(dbClient)await dbClient.auth.signOut();};
+  document.getElementById('modalClose').onclick=closeModal; document.getElementById('modalCancel').onclick=closeModal;
+  document.getElementById('modalBackdrop').onclick=e=>{if(e.target.id==='modalBackdrop')closeModal();};
+  document.getElementById('modalForm').onsubmit=submitModal;
+  document.getElementById('globalAddBtn').onclick=()=>openModal(currentView==='dashboard'?'facility':({facilities:'facility',inspections:'inspection',issues:'issue',schedule:'schedule'}[currentView]||'facility'));
+  document.body.addEventListener('click',e=>{const type=e.target.dataset.addType;if(type)openModal(type);});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.getElementById('modalBackdrop').hidden)closeModal();});
+  document.querySelectorAll('[data-auth-tab]').forEach(b=>b.onclick=()=>setAuthTab(b.dataset.authTab));
+  document.getElementById('loginForm').onsubmit=e=>{e.preventDefault();loginWithPassword(document.getElementById('loginEmail').value.trim(),document.getElementById('loginPassword').value);};
+  document.getElementById('setupForm').onsubmit=async e=>{e.preventDefault();const cfg={supabaseUrl:document.getElementById('setupUrl').value.trim(),supabaseKey:document.getElementById('setupKey').value.trim()};document.getElementById('setupError').textContent='';saveRuntimeConfig(cfg);await bootConnection(cfg);};
+  const cfg=getRuntimeConfig(); document.getElementById('setupUrl').value=cfg.supabaseUrl||''; document.getElementById('setupKey').value=cfg.supabaseKey||'';
+  renderDashboard();
+  if(cfg.supabaseUrl&&cfg.supabaseKey)await bootConnection(cfg);else{setAuthTab('setup');document.getElementById('authGate').hidden=false;setOnlineStatus('연결 설정 필요',false);}
+}
+init();
+
+</script>
+</body>
+</html>
