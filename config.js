@@ -242,6 +242,14 @@ window.FACILITY_OPS_CONFIG = {
         finalSecurity.id = 'facilityOpsV043Script';
         finalSecurity.src = 'v043.js?v=043-final-20260830';
         finalSecurity.async = false;
+        finalSecurity.onload = function() {
+          if (document.getElementById('facilityOpsUi043Script')) return;
+          const ui = document.createElement('script');
+          ui.id = 'facilityOpsUi043Script';
+          ui.src = 'v043_ui.js?v=043-ops-ui-20260830';
+          ui.async = false;
+          document.body.appendChild(ui);
+        };
         document.body.appendChild(finalSecurity);
       };
       document.body.appendChild(security);
