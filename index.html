@@ -444,7 +444,7 @@ h1 { font-size:28px; }
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   <script data-facility-pinned-sdk="2.112.4" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
-  <script src="config.js?v=0422-20260830"></script>
+  <script src="config.js?v=0423-loginfix-20260830"></script>
   <script>
 const THEME_KEY = 'facility_ops_theme';
 const LOCAL_CONFIG_KEY = 'facility_ops_supabase_config';
@@ -890,9 +890,29 @@ function updateClock(){const d=new Date();document.getElementById('clock').inner
 
 function setAuthTab(tab){document.querySelectorAll('.auth-tab').forEach(x=>x.classList.toggle('active',x.dataset.authTab===tab));document.querySelectorAll('.auth-pane').forEach(x=>x.classList.toggle('active',x.id==='authPane-'+tab));}
 async function loginWithPassword(email,password){
-  document.getElementById('loginError').textContent='';
-  try{setOnlineStatus('로그인 중',false);const {data,error}=await dbClient.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;document.getElementById('authGate').hidden=true;await loadRemoteData();startRealtime();}
-  catch(err){document.getElementById('loginError').textContent=err.message||'로그인에 실패했습니다.';setOnlineStatus('로그인 필요',false);}
+  const errorEl=document.getElementById('loginError');
+  if(errorEl)errorEl.textContent='';
+  try{
+    setOnlineStatus('로그인 중',false);
+    if(!dbClient){
+      const cfg=getRuntimeConfig();
+      if(!cfg?.supabaseUrl||!cfg?.supabaseKey)throw new Error('서버 연결 정보를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
+      await initSupabase(cfg);
+    }
+    if(!dbClient?.auth)throw new Error('로그인 서버 초기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    const raw=String(email||'').trim().toLowerCase();
+    const actualEmail=raw.includes('@')?raw:raw+'@facility.local';
+    const {data,error}=await dbClient.auth.signInWithPassword({email:actualEmail,password});
+    if(error)throw error;
+    currentUser=data.user;
+    document.getElementById('authGate').hidden=true;
+    await loadRemoteData();
+    startRealtime();
+  }catch(err){
+    console.error('[FACILITY OPS login]',err);
+    if(errorEl)errorEl.textContent=err?.message||'로그인에 실패했습니다.';
+    setOnlineStatus('로그인 필요',false);
+  }
 }
 async function verifySupabaseConfig(cfg){
   const rawUrl=String(cfg?.supabaseUrl||'').trim();
