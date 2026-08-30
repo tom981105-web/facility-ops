@@ -101,7 +101,7 @@ window.FACILITY_OPS_CONFIG = {
         if (!ok) console.warn('[FACILITY OPS] 세션 저장소 사용 불가');
       },
       removeItem(key) {
-        for (const s of stores()) { try { s.removeItem(key); } catch (_) {} }
+        for (const s of stores()) { try { s.removeItem(key); } catch (_) {}
       }
     };
   }
@@ -132,7 +132,7 @@ window.FACILITY_OPS_CONFIG = {
   // 아래 정확한 버전을 다시 로드해 고정합니다.
   try {
     if (document.readyState === 'loading' && !document.querySelector('[data-facility-pinned-sdk]')) {
-      document.write('<script data-facility-pinned-sdk="' + SDK_VERSION + '" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@' + SDK_VERSION + '/dist/umd/supabase.js" crossorigin="anonymous" onload="window.__FACILITY_PATCH_SUPABASE__()"><\\/script>');
+      document.write('<scr' + 'ipt data-facility-pinned-sdk="' + SDK_VERSION + '" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@' + SDK_VERSION + '/dist/umd/supabase.js" crossorigin="anonymous" onload="window.__FACILITY_PATCH_SUPABASE__()"></scr' + 'ipt>');
     } else {
       window.__FACILITY_PATCH_SUPABASE__();
     }
