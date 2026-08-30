@@ -1,0 +1,54 @@
+name: Apply v043 full UI polish
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-full-polish.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire full polish after dashboard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('config.js')
+          s=p.read_text(encoding='utf-8')
+          if 'facilityOpsPolish043' not in s:
+              old="""              dashboard.src = 'v043_dashboard.js?v=043-command-center-20260830';
+              dashboard.async = false;
+              document.body.appendChild(dashboard);"""
+              new="""              dashboard.src = 'v043_dashboard.js?v=043-command-center-20260830';
+              dashboard.async = false;
+              dashboard.onload = function() {
+                if (!document.getElementById('facilityOpsPolish043')) {
+                  const polish = document.createElement('script');
+                  polish.id = 'facilityOpsPolish043';
+                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
+                  polish.async = false;
+                  document.body.appendChild(polish);
+                }
+              };
+              document.body.appendChild(dashboard);"""
+              if old not in s:
+                  raise SystemExit('dashboard loader block not found')
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          node --check config.js
+          node --check v043_polish.js
+          node --check v043_dashboard.js
+          node --check v043_logo_fix.js
+      - name: Commit activation
+        run: |
+          git config user.name 'facility-ops-ui-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add config.js
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Activate v0.4.3 full interface polish'
+          git push
