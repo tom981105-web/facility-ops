@@ -1,13 +1,12 @@
-// FACILITY OPS v0.4.3 — FINAL LOGO + LIGHT THEME FIX
+// FACILITY OPS v0.4.3 — BRAND ALIGN + LIGHT THEME FIX
 (function(){
   const STYLE_ID='facilityOpsLogoThemeFinal043';
-  let queued=false;
 
   function ensureStyle(){
-    if(document.getElementById(STYLE_ID)) return;
-    const s=document.createElement('style');
-    s.id=STYLE_ID;
+    let s=document.getElementById(STYLE_ID);
+    if(!s){s=document.createElement('style');s.id=STYLE_ID;document.head.appendChild(s)}
     s.textContent=`
+      /* LIGHT THEME COMPLETION */
       body.light{background:radial-gradient(circle at 84% 8%,rgba(39,111,191,.07),transparent 28%),radial-gradient(circle at 12% 90%,rgba(22,125,105,.05),transparent 32%),#f3f6fa!important;color:#142234!important}
       body.light .sidebar{background:linear-gradient(180deg,rgba(255,255,255,.99),rgba(247,250,253,.99))!important;border-right-color:rgba(35,55,78,.10)!important}
       body.light .topbar{background:rgba(255,255,255,.88)!important;border-bottom-color:rgba(35,55,78,.10)!important;box-shadow:0 8px 24px rgba(41,57,71,.04)}
@@ -25,64 +24,85 @@
       body.light .modal-card,body.light .detail-hero,body.light .detail-metric,body.light .timeline-card,body.light .calendar,body.light .calendar-head,body.light .cal-day{background:var(--panel)!important;color:var(--text)!important;border-color:var(--line)!important}
       body.light .toast{background:#fff!important;color:#142234!important;border-color:rgba(35,55,78,.12)!important;box-shadow:0 12px 32px rgba(41,57,71,.12)!important}
 
-      .facility-brand-logo-final{display:block!important;visibility:visible!important;opacity:1!important;object-fit:contain!important;object-position:center!important;flex:0 0 auto!important;transform:none!important;filter:none!important;background:transparent!important}
-      .sidebar .brand>.facility-brand-logo-final,.brand>.facility-brand-logo-final{width:72px!important;height:48px!important;max-width:72px!important;min-width:72px!important;margin:0 2px 0 0!important}
-      .auth-logo>.facility-brand-logo-final,.auth-card>.facility-brand-logo-final{width:112px!important;height:74px!important;max-width:112px!important;margin:0 auto 12px!important}
+      /* STATIC LOGO IS NOW THE SINGLE SOURCE OF TRUTH */
+      .brand>.facility-brand-logo,.brand>.facility-brand-logo-final,
+      .auth-logo>.facility-brand-logo,.auth-logo>.facility-brand-logo-final{display:none!important}
       .brand>.brand-mark,.auth-logo>.brand-mark{display:none!important}
+
+      /* SIDEBAR BRAND — keep logo and full title inside 240px sidebar */
+      .sidebar .brand{
+        display:grid!important;
+        grid-template-columns:58px minmax(0,1fr)!important;
+        align-items:center!important;
+        column-gap:10px!important;
+        min-height:72px!important;
+        padding:2px 4px 18px!important;
+        margin-bottom:14px!important;
+      }
+      .sidebar .brand>.facility-logo-static{
+        display:block!important;visibility:visible!important;opacity:1!important;
+        width:58px!important;height:52px!important;min-width:58px!important;max-width:58px!important;
+        margin:0!important;object-fit:contain!important;justify-self:center!important;
+      }
+      .sidebar .brand>div:last-child{min-width:0!important;align-self:center!important}
+      .sidebar .brand strong{
+        display:block!important;font-size:15px!important;line-height:1.08!important;
+        letter-spacing:-.025em!important;white-space:nowrap!important;overflow:visible!important;
+      }
+      .sidebar .brand small{
+        display:block!important;margin-top:5px!important;font-size:7px!important;line-height:1.35!important;
+        letter-spacing:.09em!important;white-space:normal!important;max-width:112px!important;
+      }
+
+      /* LOGIN BRAND — logo + title behave as one centered horizontal lockup */
+      .auth-card .auth-logo{
+        display:grid!important;
+        grid-template-columns:112px minmax(0,1fr)!important;
+        align-items:center!important;
+        justify-content:center!important;
+        column-gap:24px!important;
+        width:100%!important;
+        max-width:390px!important;
+        margin:0 auto 30px!important;
+        padding:2px 4px!important;
+      }
+      .auth-card .auth-logo>.facility-logo-static{
+        display:block!important;visibility:visible!important;opacity:1!important;
+        width:112px!important;height:82px!important;min-width:112px!important;max-width:112px!important;
+        margin:0!important;object-fit:contain!important;justify-self:end!important;
+      }
+      .auth-card .auth-logo>div:last-child{
+        min-width:0!important;align-self:center!important;text-align:left!important;
+      }
+      .auth-card .auth-logo h2{
+        margin:0!important;font-size:21px!important;line-height:1.05!important;
+        letter-spacing:-.035em!important;white-space:nowrap!important;
+      }
+      .auth-card .auth-logo p{
+        margin:7px 0 0!important;font-size:0!important;line-height:1.25!important;white-space:nowrap!important;
+      }
+      .auth-card .auth-logo p::after{
+        content:'v0.4.3 · SECURE OPERATIONS'!important;
+        display:block!important;font-size:9px!important;color:var(--muted)!important;letter-spacing:.01em!important;
+      }
+
+      /* Keep small screens tidy */
+      @media(max-width:520px){
+        .auth-card .auth-logo{grid-template-columns:86px minmax(0,1fr)!important;column-gap:16px!important;max-width:330px!important}
+        .auth-card .auth-logo>.facility-logo-static{width:86px!important;height:68px!important;min-width:86px!important;max-width:86px!important}
+        .auth-card .auth-logo h2{font-size:19px!important}
+        .sidebar .brand{grid-template-columns:54px minmax(0,1fr)!important}
+        .sidebar .brand>.facility-logo-static{width:54px!important;min-width:54px!important;max-width:54px!important}
+      }
     `;
-    document.head.appendChild(s);
-  }
-
-  function logo(){
-    const value=window.FACILITY_OPS_LOGO;
-    return typeof value==='string' && value.startsWith('data:image/') ? value : '';
-  }
-
-  function makeImg(kind){
-    const img=document.createElement('img');
-    img.className='facility-brand-logo-final';
-    img.alt='FACILITY OPS';
-    img.loading='eager';
-    img.decoding='sync';
-    img.dataset.logoKind=kind;
-    img.src=logo();
-    return img;
-  }
-
-  function mountBrand(root){
-    const src=logo();
-    if(!root||!src) return;
-    root.querySelectorAll(':scope > .facility-brand-logo,.facility-brand-logo-final').forEach((el,i)=>{if(i>0)el.remove();});
-    let img=root.querySelector(':scope > .facility-brand-logo-final');
-    if(!img){img=makeImg('brand');root.prepend(img);}else if(img.getAttribute('src')!==src){img.src=src;}
-    const mark=root.querySelector(':scope > .brand-mark');
-    if(mark) mark.style.display='none';
-  }
-
-  function mountAuth(){
-    const src=logo();
-    if(!src) return;
-    const root=document.querySelector('.auth-logo')||document.querySelector('.auth-card');
-    if(!root) return;
-    let img=root.querySelector(':scope > .facility-brand-logo-final');
-    if(!img){img=makeImg('auth');root.prepend(img);}else if(img.getAttribute('src')!==src){img.src=src;}
-    const mark=root.querySelector(':scope > .brand-mark');
-    if(mark) mark.style.display='none';
   }
 
   function apply(){
-    queued=false;
     ensureStyle();
-    if(!logo()) return;
-    document.querySelectorAll('.brand').forEach(mountBrand);
-    mountAuth();
-    document.documentElement.dataset.facilityLogo='mounted-final';
+    document.documentElement.dataset.facilityBrandAlign='043-final';
   }
 
-  function queue(){if(queued)return;queued=true;requestAnimationFrame(apply);}
   apply();
   document.addEventListener('DOMContentLoaded',apply,{once:true});
   window.addEventListener('load',apply,{once:true});
-  const startObserver=()=>{const o=new MutationObserver(queue);o.observe(document.body,{childList:true,subtree:true});};
-  if(document.body) startObserver(); else document.addEventListener('DOMContentLoaded',startObserver,{once:true});
 })();
