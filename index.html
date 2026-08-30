@@ -4,7 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark light" />
-  <title>FACILITY OPS v0.3.0 - Multi User Online</title>
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex" />
+  <meta name="googlebot" content="noindex,nofollow,noarchive,nosnippet,noimageindex" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://rmkjiqzcxbxwbiwqjjcz.supabase.co wss://rmkjiqzcxbxwbiwqjjcz.supabase.co https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests" />
+  <title>FACILITY OPS v0.4.2 - Security Hardening</title>
   <style>
 :root {
   --bg: #081018;
@@ -362,7 +366,7 @@ h1 { font-size:28px; }
         <button class="ghost-btn full" id="exportBtn">데이터 내보내기</button>
         <label class="ghost-btn full file-label">백업 데이터 가져오기<input id="importInput" type="file" accept="application/json" /></label>
         <button class="ghost-btn full danger-subtle" id="logoutBtn">로그아웃</button>
-        <div class="version">FACILITY OPS v0.3.0 ONLINE</div>
+        <div class="version">FACILITY OPS v0.4.2 SECURITY HARDENING</div>
       </div>
     </aside>
 
@@ -393,22 +397,22 @@ h1 { font-size:28px; }
     <div class="auth-card">
       <div class="auth-logo">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-        <div><h2>FACILITY OPS</h2><p>v0.3.1 MULTI USER ONLINE</p></div>
+        <div><h2>FACILITY OPS</h2><p>v0.4.2 SECURITY HARDENING</p></div>
       </div>
       <div class="auth-tabs" id="authTabs">
         <button class="auth-tab active" type="button" data-auth-tab="login">로그인</button>
-        <button class="auth-tab" type="button" data-auth-tab="setup">연결 설정</button>
+        <button class="auth-tab" type="button" data-auth-tab="setup" hidden style="display:none">연결 설정</button>
       </div>
       <div class="auth-pane active" id="authPane-login">
         <p class="auth-help">등록된 직원 계정으로 로그인하면 같은 시설 데이터를 여러 PC에서 함께 사용할 수 있습니다.</p>
         <form class="auth-form" id="loginForm">
-          <div class="auth-field"><label>이메일</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+          <div class="auth-field"><label>아이디</label><input id="loginEmail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="예: admin" required></div>
           <div class="auth-field"><label>비밀번호</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
           <button class="primary-btn full" type="submit">로그인</button>
         </form>
         <div class="auth-error" id="loginError"></div>
       </div>
-      <div class="auth-pane" id="authPane-setup">
+      <div class="auth-pane" id="authPane-setup" hidden style="display:none">
         <p class="auth-help">GitHub Pages에 올릴 때는 <b>config.js</b>에 아래 두 값을 한 번만 입력하면 모든 직원에게 공통 적용됩니다. Publishable Key만 사용하세요.</p>
         <form class="auth-form" id="setupForm">
           <div class="auth-field"><label>Supabase Project URL</label><input id="setupUrl" type="url" placeholder="https://xxxxx.supabase.co" required></div>
@@ -439,8 +443,8 @@ h1 { font-size:28px; }
   </div>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
+  <script data-facility-pinned-sdk="2.112.4" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
+  <script src="config.js?v=0422-20260830"></script>
   <script>
 const THEME_KEY = 'facility_ops_theme';
 const LOCAL_CONFIG_KEY = 'facility_ops_supabase_config';
