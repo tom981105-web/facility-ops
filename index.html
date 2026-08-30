@@ -366,7 +366,7 @@ h1 { font-size:28px; }
         <button class="ghost-btn full" id="exportBtn">데이터 내보내기</button>
         <label class="ghost-btn full file-label">백업 데이터 가져오기<input id="importInput" type="file" accept="application/json" /></label>
         <button class="ghost-btn full danger-subtle" id="logoutBtn">로그아웃</button>
-        <div class="version">FACILITY OPS v0.4.2 SECURITY HARDENING</div>
+        <div class="version">FACILITY OPS v0.3.0 ONLINE</div>
       </div>
     </aside>
 
@@ -397,7 +397,7 @@ h1 { font-size:28px; }
     <div class="auth-card">
       <div class="auth-logo">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-        <div><h2>FACILITY OPS</h2><p>v0.4.2 SECURITY HARDENING</p></div>
+        <div><h2>FACILITY OPS</h2><p>v0.3.1 MULTI USER ONLINE</p></div>
       </div>
       <div class="auth-tabs" id="authTabs">
         <button class="auth-tab active" type="button" data-auth-tab="login">로그인</button>
@@ -406,7 +406,7 @@ h1 { font-size:28px; }
       <div class="auth-pane active" id="authPane-login">
         <p class="auth-help">등록된 직원 계정으로 로그인하면 같은 시설 데이터를 여러 PC에서 함께 사용할 수 있습니다.</p>
         <form class="auth-form" id="loginForm">
-          <div class="auth-field"><label>아이디</label><input id="loginEmail" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="예: admin" required></div>
+          <div class="auth-field"><label>이메일</label><input id="loginEmail" type="email" autocomplete="username" required></div>
           <div class="auth-field"><label>비밀번호</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
           <button class="primary-btn full" type="submit">로그인</button>
         </form>
@@ -444,7 +444,8 @@ h1 { font-size:28px; }
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   <script data-facility-pinned-sdk="2.112.4" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
-  <script src="config.js?v=0424-configfix-20260830"></script>
+  <script src="config.js?v=042-stable-20260830"></script>
+  <script src="v042.js?v=042-stable-20260830"></script>
   <script>
 const THEME_KEY = 'facility_ops_theme';
 const LOCAL_CONFIG_KEY = 'facility_ops_supabase_config';
@@ -554,12 +555,30 @@ function updateUserUI(){
   chip.innerHTML=`<strong>${esc(name)}</strong><small>${role==='admin'?'관리자':role==='viewer'?'열람 전용':'일반 사용자'}</small>`;
   document.getElementById('globalAddBtn').style.display=canEdit()?'':'none';
 }
+let authActivationPromise=null;
+async function activateAuthenticatedSession(showCover=true){
+  if(!dbClient||!currentUser)return false;
+  if(authActivationPromise)return authActivationPromise;
+  authActivationPromise=(async()=>{
+    const hook=window.FACILITY_OPS_SECURITY?.beforeDataLoad;
+    if(typeof hook==='function'){const ok=await hook(dbClient,currentUser);if(!ok)return false;}
+    const gate=document.getElementById('authGate');if(gate)gate.hidden=true;
+    await loadRemoteData(showCover);
+    startRealtime();
+    return true;
+  })();
+  try{return await authActivationPromise;}finally{authActivationPromise=null;}
+}
 async function initSupabase(cfg){
-  if(!window.supabase?.createClient) throw new Error('Supabase 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
-  dbClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  const {data,error}=await dbClient.auth.getSession(); if(error)throw error;
+  if(!window.supabase?.createClient)throw new Error('Supabase 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');
+  dbClient=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+  const {data,error}=await dbClient.auth.getSession();if(error)throw error;
   currentUser=data.session?.user||null;
-  dbClient.auth.onAuthStateChange((_event,session)=>{currentUser=session?.user||null;if(currentUser){document.getElementById('authGate').hidden=true;loadRemoteData().then(startRealtime);}else{document.getElementById('authGate').hidden=false;setOnlineStatus('로그인 필요',false);}});
+  dbClient.auth.onAuthStateChange((_event,session)=>{
+    currentUser=session?.user||null;
+    if(currentUser){setTimeout(()=>activateAuthenticatedSession(false).catch(err=>console.error('[FACILITY OPS auth activate]',err)),0);}
+    else{const gate=document.getElementById('authGate');if(gate)gate.hidden=false;setOnlineStatus('로그인 필요',false);}
+  });
   return currentUser;
 }
 function esc(s=''){ return String(s).replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
@@ -892,29 +911,21 @@ function updateClock(){const d=new Date();document.getElementById('clock').inner
 
 function setAuthTab(tab){document.querySelectorAll('.auth-tab').forEach(x=>x.classList.toggle('active',x.dataset.authTab===tab));document.querySelectorAll('.auth-pane').forEach(x=>x.classList.toggle('active',x.id==='authPane-'+tab));}
 async function loginWithPassword(email,password){
-  const errorEl=document.getElementById('loginError');
-  if(errorEl)errorEl.textContent='';
+  const errorEl=document.getElementById('loginError');if(errorEl)errorEl.textContent='';
+  const security=window.FACILITY_OPS_SECURITY;
   try{
     setOnlineStatus('로그인 중',false);
-    if(!dbClient){
-      const cfg=getRuntimeConfig();
-      if(!cfg?.supabaseUrl||!cfg?.supabaseKey)throw new Error('서버 연결 정보를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
-      await initSupabase(cfg);
-    }
-    if(!dbClient?.auth)throw new Error('로그인 서버 초기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    if(!dbClient){const cfg=getRuntimeConfig();await initSupabase(cfg);}
+    if(!dbClient?.auth)throw new Error('로그인 서버 초기화에 실패했습니다.');
     const raw=String(email||'').trim().toLowerCase();
     const actualEmail=raw.includes('@')?raw:raw+'@facility.local';
-    const {data,error}=await dbClient.auth.signInWithPassword({email:actualEmail,password});
-    if(error)throw error;
+    const credentials={email:actualEmail,password};
+    if(security?.captchaRequired?.()){const token=security.getCaptchaToken?.();if(!token)throw new Error('CAPTCHA 인증을 완료해 주세요.');credentials.options={captchaToken:token};}
+    const {data,error}=await dbClient.auth.signInWithPassword(credentials);if(error)throw error;
     currentUser=data.user;
-    document.getElementById('authGate').hidden=true;
-    await loadRemoteData();
-    startRealtime();
-  }catch(err){
-    console.error('[FACILITY OPS login]',err);
-    if(errorEl)errorEl.textContent=err?.message||'로그인에 실패했습니다.';
-    setOnlineStatus('로그인 필요',false);
-  }
+    const ok=await activateAuthenticatedSession(true);if(!ok)setOnlineStatus('로그인 필요',false);
+  }catch(err){console.error('[FACILITY OPS login]',err);if(errorEl)errorEl.textContent=err?.message||'로그인에 실패했습니다.';setOnlineStatus('로그인 필요',false);}
+  finally{try{security?.resetCaptcha?.();}catch(_){}}
 }
 async function verifySupabaseConfig(cfg){
   const rawUrl=String(cfg?.supabaseUrl||'').trim();
@@ -946,21 +957,16 @@ function showLoginConnectionSuccess(){
 }
 async function bootConnection(cfg,fromSetup=false){
   try{
-    const setupError=document.getElementById('setupError');
-    setupError.classList.remove('success'); setupError.textContent=fromSetup?'Supabase 서버에 실제 연결하는 중...':'';
     setOnlineStatus('연결 확인 중',false);
     await verifySupabaseConfig(cfg);
     const user=await initSupabase(cfg);
-    if(user){
-      setupError.textContent=''; document.getElementById('authGate').hidden=true; await loadRemoteData(); startRealtime();
-    }else{
-      document.getElementById('authGate').hidden=false; setOnlineStatus('로그인 필요',false);
-      if(fromSetup){ setupError.textContent=''; setAuthTab('login'); showLoginConnectionSuccess(); }
-    }
+    if(user){await activateAuthenticatedSession(true);}
+    else{const gate=document.getElementById('authGate');if(gate)gate.hidden=false;setAuthTab('login');setOnlineStatus('로그인 필요',false);if(fromSetup)showLoginConnectionSuccess();}
   }catch(err){
-    console.error(err); document.getElementById('authGate').hidden=false; setAuthTab('setup');
-    const el=document.getElementById('setupError'); el.classList.remove('success'); el.textContent='✕ '+(err.message||'Supabase 연결을 확인해 주세요.');
-    setOnlineStatus('연결 설정 필요',false);
+    console.error(err);
+    const gate=document.getElementById('authGate');if(gate)gate.hidden=false;setAuthTab('login');
+    const el=document.getElementById('loginError');if(el)el.textContent='서버 연결 오류 · '+(err?.message||'Supabase 연결을 확인해 주세요.');
+    setOnlineStatus('연결 오류',false);
   }
 }
 async function init(){
