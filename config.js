@@ -169,3 +169,255 @@ window.FACILITY_OPS_CONFIG = {
     setTimeout(attachIdLoginMode, 0);
   }, { once: true });
 })();
+
+// v0.3.3: 테마 안정화 / 내부 UUID 숨김 / 관리자 전용 관리 기능
+(function () {
+  const THEME_KEY = 'facility_ops_theme';
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  let volatileTheme = null;
+  let adminSettingsOpen = false;
+  let scheduled = false;
+
+  function safeGetTheme() {
+    try { return localStorage.getItem(THEME_KEY) || volatileTheme; }
+    catch (_) { return volatileTheme; }
+  }
+
+  function safeSetTheme(value) {
+    volatileTheme = value;
+    try { localStorage.setItem(THEME_KEY, value); } catch (_) {}
+  }
+
+  function applyThemeVisual(value) {
+    const light = value === 'light';
+    document.body.classList.toggle('light', light);
+    document.documentElement.style.colorScheme = light ? 'light' : 'dark';
+    const btn = document.getElementById('themeBtn');
+    if (btn) {
+      btn.textContent = light ? '☀' : '◐';
+      btn.title = light ? '다크 모드로 전환' : '라이트 모드로 전환';
+      btn.setAttribute('aria-label', btn.title);
+    }
+  }
+
+  function toggleThemeSafe() {
+    const next = document.body.classList.contains('light') ? 'dark' : 'light';
+    safeSetTheme(next);
+    applyThemeVisual(next);
+  }
+
+  function isAdminUi() {
+    const role = document.querySelector('#userChip small')?.textContent?.trim();
+    return role === '관리자';
+  }
+
+  function notify(message) {
+    if (typeof window.toast === 'function') {
+      try { window.toast(message); return; } catch (_) {}
+    }
+    alert(message);
+  }
+
+  function hideSetupForLogin() {
+    const setupTab = document.querySelector('[data-auth-tab="setup"]');
+    const gate = document.getElementById('authGate');
+    if (!setupTab) return;
+    if (!adminSettingsOpen || !isAdminUi()) {
+      setupTab.hidden = true;
+      setupTab.style.display = 'none';
+      if (gate && !gate.hidden) {
+        const setupPane = document.getElementById('authPane-setup');
+        const loginPane = document.getElementById('authPane-login');
+        const loginTab = document.querySelector('[data-auth-tab="login"]');
+        setupPane?.classList.remove('active');
+        loginPane?.classList.add('active');
+        setupTab.classList.remove('active');
+        loginTab?.classList.add('active');
+      }
+    }
+  }
+
+  function ensureAdminConnectionButton() {
+    let btn = document.getElementById('adminConnectionBtnV033');
+    if (btn) return btn;
+    const logout = document.getElementById('logoutBtn');
+    if (!logout) return null;
+    btn = document.createElement('button');
+    btn.id = 'adminConnectionBtnV033';
+    btn.type = 'button';
+    btn.className = 'ghost-btn full';
+    btn.textContent = '연결 설정';
+    btn.hidden = true;
+    btn.style.display = 'none';
+    logout.parentNode.insertBefore(btn, logout);
+    return btn;
+  }
+
+  function ensureSetupBackButton() {
+    let btn = document.getElementById('setupBackBtnV033');
+    if (btn) return btn;
+    const pane = document.getElementById('authPane-setup');
+    if (!pane) return null;
+    btn = document.createElement('button');
+    btn.id = 'setupBackBtnV033';
+    btn.type = 'button';
+    btn.className = 'ghost-btn full';
+    btn.textContent = '← 시스템으로 돌아가기';
+    btn.style.marginTop = '8px';
+    btn.addEventListener('click', function () {
+      adminSettingsOpen = false;
+      const gate = document.getElementById('authGate');
+      if (gate) gate.hidden = true;
+      const setupTab = document.querySelector('[data-auth-tab="setup"]');
+      if (setupTab) {
+        setupTab.hidden = true;
+        setupTab.style.display = 'none';
+      }
+      if (typeof window.setAuthTab === 'function') {
+        try { window.setAuthTab('login'); } catch (_) {}
+      }
+    });
+    pane.appendChild(btn);
+    return btn;
+  }
+
+  function openAdminConnectionSettings() {
+    if (!isAdminUi()) {
+      notify('관리자만 연결 설정을 열 수 있습니다.');
+      return;
+    }
+    adminSettingsOpen = true;
+    const gate = document.getElementById('authGate');
+    const setupTab = document.querySelector('[data-auth-tab="setup"]');
+    if (setupTab) {
+      setupTab.hidden = false;
+      setupTab.style.display = '';
+    }
+    ensureSetupBackButton();
+    if (gate) gate.hidden = false;
+    if (typeof window.setAuthTab === 'function') {
+      try { window.setAuthTab('setup'); return; } catch (_) {}
+    }
+    document.getElementById('authPane-login')?.classList.remove('active');
+    document.getElementById('authPane-setup')?.classList.add('active');
+  }
+
+  function applyAdminVisibility() {
+    const admin = isAdminUi();
+    const exportBtn = document.getElementById('exportBtn');
+    const importInput = document.getElementById('importInput');
+    const importLabel = importInput?.closest('label');
+    const connectionBtn = ensureAdminConnectionButton();
+
+    if (exportBtn) {
+      exportBtn.hidden = !admin;
+      exportBtn.style.display = admin ? '' : 'none';
+    }
+    if (importLabel) {
+      importLabel.hidden = !admin;
+      importLabel.style.display = admin ? '' : 'none';
+    }
+    if (connectionBtn) {
+      connectionBtn.hidden = !admin;
+      connectionBtn.style.display = admin ? '' : 'none';
+      if (!connectionBtn.dataset.boundV033) {
+        connectionBtn.dataset.boundV033 = '1';
+        connectionBtn.addEventListener('click', openAdminConnectionSettings);
+      }
+    }
+
+    // 로그인 화면에서는 연결 설정을 노출하지 않습니다.
+    // 관리자가 로그인한 뒤 사이드바의 연결 설정 버튼으로만 접근합니다.
+    hideSetupForLogin();
+  }
+
+  function scrubInternalIds() {
+    document.querySelectorAll('.detail-code').forEach(function (el) {
+      const text = String(el.textContent || '').trim();
+      if (UUID_RE.test(text)) {
+        el.textContent = '▦';
+        el.title = '시설';
+      }
+    });
+
+    document.querySelectorAll('.panel-title small').forEach(function (el) {
+      const text = String(el.textContent || '').trim();
+      if (UUID_RE.test(text)) el.textContent = '시설 정보';
+    });
+  }
+
+  function updateVersionLabels() {
+    const authVersion = document.querySelector('.auth-logo p');
+    if (authVersion && authVersion.textContent !== 'v0.3.3 ADMIN CONTROL ONLINE') {
+      authVersion.textContent = 'v0.3.3 ADMIN CONTROL ONLINE';
+    }
+    const sideVersion = document.querySelector('.sidebar .version');
+    if (sideVersion && sideVersion.textContent !== 'FACILITY OPS v0.3.3 ONLINE') {
+      sideVersion.textContent = 'FACILITY OPS v0.3.3 ONLINE';
+    }
+  }
+
+  function refreshUi() {
+    scheduled = false;
+    updateVersionLabels();
+    scrubInternalIds();
+    applyAdminVisibility();
+  }
+
+  function scheduleRefresh() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(refreshUi);
+  }
+
+  // 원래 테마 onclick보다 먼저 가로채서 회사 PC 저장소 제한과 무관하게 전환합니다.
+  document.addEventListener('click', function (event) {
+    const themeBtn = event.target.closest?.('#themeBtn');
+    if (themeBtn) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      toggleThemeSafe();
+      return;
+    }
+
+    const exportBtn = event.target.closest?.('#exportBtn');
+    if (exportBtn && !isAdminUi()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      notify('관리자만 데이터를 내보낼 수 있습니다.');
+      return;
+    }
+
+    const setupTab = event.target.closest?.('[data-auth-tab="setup"]');
+    if (setupTab && (!isAdminUi() || !adminSettingsOpen)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+  }, true);
+
+  document.addEventListener('change', function (event) {
+    if (event.target?.id === 'importInput' && !isAdminUi()) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      try { event.target.value = ''; } catch (_) {}
+      notify('관리자만 백업 데이터를 가져올 수 있습니다.');
+    }
+  }, true);
+
+  // config.js는 본문 뒤에서 로드되므로 로그인 화면의 연결 설정부터 즉시 숨깁니다.
+  hideSetupForLogin();
+
+  window.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+      const saved = safeGetTheme();
+      if (saved === 'light' || saved === 'dark') applyThemeVisual(saved);
+      else applyThemeVisual(document.body.classList.contains('light') ? 'light' : 'dark');
+
+      refreshUi();
+
+      const observer = new MutationObserver(scheduleRefresh);
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    }, 20);
+  }, { once: true });
+})();
