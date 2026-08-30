@@ -20,26 +20,30 @@ jobs:
           p=Path('config.js')
           s=p.read_text(encoding='utf-8')
           if 'facilityOpsServiceDesk045' not in s:
-              old="""                      smart.src = 'v044.js?v=044-smart-ops-20260830';
-                      smart.async = false;
-                      document.body.appendChild(smart);"""
-              new="""                      smart.src = 'v044.js?v=044-smart-ops-20260830';
-                      smart.async = false;
-                      smart.onload = function() {
-                        if (!document.getElementById('facilityOpsServiceDesk045')) {
-                          const desk = document.createElement('script');
-                          desk.id = 'facilityOpsServiceDesk045';
-                          desk.src = 'v045.js?v=045-service-desk-20260830';
-                          desk.async = false;
-                          document.body.appendChild(desk);
-                        }
-                      };
-                      document.body.appendChild(smart);"""
-              if old not in s:
-                  raise SystemExit('v0.4.4 loader block not found')
-              s=s.replace(old,new,1)
+              lines=s.splitlines()
+              out=[]
+              done=False
+              for line in lines:
+                  out.append(line)
+                  if not done and 'smart.async = false;' in line:
+                      indent=line[:len(line)-len(line.lstrip())]
+                      out.extend([
+                          indent+'smart.onload = function() {',
+                          indent+"  if (!document.getElementById('facilityOpsServiceDesk045')) {",
+                          indent+"    const desk = document.createElement('script');",
+                          indent+"    desk.id = 'facilityOpsServiceDesk045';",
+                          indent+"    desk.src = 'v045.js?v=045-service-desk-20260830';",
+                          indent+'    desk.async = false;',
+                          indent+'    document.body.appendChild(desk);',
+                          indent+'  }',
+                          indent+'};'
+                      ])
+                      done=True
+              if not done:
+                  raise SystemExit('smart.async loader line not found')
+              s='\n'.join(out)+'\n'
           p.write_text(s,encoding='utf-8')
-          assert 'facilityOpsServiceDesk045' in s
+          assert s.count('facilityOpsServiceDesk045') >= 2
           assert 'v045.js?v=045-service-desk-20260830' in s
           PY
           node --check config.js
