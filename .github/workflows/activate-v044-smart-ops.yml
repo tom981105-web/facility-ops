@@ -13,10 +13,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Wire isolated SMART OPS layer
+      - name: Fix SMART OPS syntax and wire isolated layer
         run: |
           python - <<'PY'
           from pathlib import Path
+
+          # Fix the CSS template-literal terminator in v044.js.
+          vp=Path('v044.js')
+          vs=vp.read_text(encoding='utf-8')
+          bad="}};\n    document.head.appendChild(style);"
+          good="}}`;\n    document.head.appendChild(style);"
+          if bad in vs:
+              vs=vs.replace(bad,good,1)
+          vp.write_text(vs,encoding='utf-8')
+
+          # Load v0.4.4 only after the existing v0.4.3 polish layer finishes.
           p=Path('config.js')
           s=p.read_text(encoding='utf-8')
           if 'facilityOpsSmartOps044' not in s:
@@ -54,7 +65,7 @@ jobs:
         run: |
           git config user.name 'facility-ops-ui-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add config.js
+          git add config.js v044.js
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'Activate FACILITY OPS v0.4.4 SMART OPS'
           git push
