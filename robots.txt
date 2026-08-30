@@ -2,3 +2,4 @@ User-agent: *
 Disallow: /
 
 # FACILITY OPS is an internal operations interface.
+# v0.4.2 SECURITY HARDENING redeploy marker
