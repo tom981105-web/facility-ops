@@ -1,4 +1,5 @@
 name: One-time v0.4.2 index fix
+# trigger: 2026-08-30-02
 
 on:
   push:
@@ -33,11 +34,9 @@ jobs:
                   print('WARN missing:', old[:90])
               s = s.replace(old, new)
 
-          # 운영판 연결 설정은 HTML 단계에서도 보이지 않게 고정. 요소는 기존 JS 호환을 위해 유지.
           s = s.replace('<button class="auth-tab" type="button" data-auth-tab="setup">연결 설정</button>', '<button class="auth-tab" type="button" data-auth-tab="setup" hidden style="display:none">연결 설정</button>')
           s = s.replace('<div class="auth-pane" id="authPane-setup">', '<div class="auth-pane" id="authPane-setup" hidden style="display:none">')
 
-          # noindex/referrer/CSP를 config.js 실행 전부터 적용.
           marker = '  <meta name="color-scheme" content="dark light" />\n'
           security = (
               '  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex" />\n'
