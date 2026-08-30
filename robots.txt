@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /
+
+# FACILITY OPS is an internal operations interface.
