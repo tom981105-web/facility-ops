@@ -246,13 +246,13 @@ window.FACILITY_OPS_CONFIG = {
           if (document.getElementById('facilityOpsUi043Script')) return;
           const ui = document.createElement('script');
           ui.id = 'facilityOpsUi043Script';
-          ui.src = 'v043_ui.js?v=043-ops-ui-20260830b';
+          ui.src = 'v043_ui.js?v=043-ops-ui-logo-final-20260830';
           ui.async = false;
           ui.onload = function() {
             if (!document.getElementById('facilityOpsLogoFix043')) {
               const logoFix = document.createElement('script');
               logoFix.id = 'facilityOpsLogoFix043';
-              logoFix.src = 'v043_logo_fix.js?v=043-logo-final-20260830c';
+              logoFix.src = 'v043_logo_fix.js?v=043-logo-direct-final-20260830';
               logoFix.async = false;
               document.body.appendChild(logoFix);
             }
