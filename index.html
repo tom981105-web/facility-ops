@@ -444,7 +444,7 @@ h1 { font-size:28px; }
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   <script data-facility-pinned-sdk="2.112.4" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4/dist/umd/supabase.js"></script>
-  <script src="config.js?v=0423-loginfix-20260830"></script>
+  <script src="config.js?v=0424-configfix-20260830"></script>
   <script>
 const THEME_KEY = 'facility_ops_theme';
 const LOCAL_CONFIG_KEY = 'facility_ops_supabase_config';
@@ -497,9 +497,11 @@ const severityText = {low:'낮음',medium:'보통',high:'높음'};
 
 function clone(v){ return JSON.parse(JSON.stringify(v)); }
 function getRuntimeConfig(){
+  const valid=c=>!!(c?.supabaseUrl&&c?.supabaseKey&&!String(c.supabaseUrl).includes('YOUR_PROJECT'));
   const fileCfg=window.FACILITY_OPS_CONFIG||{};
-  if(fileCfg.supabaseUrl && fileCfg.supabaseKey && !String(fileCfg.supabaseUrl).includes('YOUR_PROJECT')) return fileCfg;
-  try { return JSON.parse(localStorage.getItem(LOCAL_CONFIG_KEY)||'{}'); } catch { return {}; }
+  if(valid(fileCfg))return {supabaseUrl:String(fileCfg.supabaseUrl).trim(),supabaseKey:String(fileCfg.supabaseKey).trim()};
+  try{const saved=JSON.parse(localStorage.getItem(LOCAL_CONFIG_KEY)||'{}');if(valid(saved))return {supabaseUrl:String(saved.supabaseUrl).trim(),supabaseKey:String(saved.supabaseKey).trim()};}catch(_){}
+  return {supabaseUrl:'https://rmkjiqzcxbxwbiwqjjcz.supabase.co',supabaseKey:'sb_publishable_Vb2sf5s6hJbr0FuNVx1oxA_Epbqu3yV'};
 }
 function saveRuntimeConfig(cfg){ localStorage.setItem(LOCAL_CONFIG_KEY,JSON.stringify(cfg)); }
 function setSyncing(on){ document.getElementById('syncCover').hidden=!on; }
