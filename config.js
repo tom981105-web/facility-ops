@@ -273,6 +273,15 @@ window.FACILITY_OPS_CONFIG = {
                       smart.id = 'facilityOpsSmartOps044';
                       smart.src = 'v044.js?v=044-smart-ops-20260830';
                       smart.async = false;
+                      smart.onload = function() {
+                        if (!document.getElementById('facilityOpsServiceDesk045')) {
+                          const desk = document.createElement('script');
+                          desk.id = 'facilityOpsServiceDesk045';
+                          desk.src = 'v045.js?v=045-service-desk-20260830';
+                          desk.async = false;
+                          document.body.appendChild(desk);
+                        }
+                      };
                       document.body.appendChild(smart);
                     }
                   };
