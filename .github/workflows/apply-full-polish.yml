@@ -13,30 +13,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Wire full polish after dashboard
+      - name: Finalize full polish
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
-          p=Path('config.js')
-          s=p.read_text(encoding='utf-8')
-          if 'facilityOpsPolish043' not in s:
-              pattern=r"(dashboard\.src\s*=\s*'v043_dashboard\.js\?v=043-command-center-20260830';\s*dashboard\.async\s*=\s*false;\s*)document\.body\.appendChild\(dashboard\);"
-              replacement=r"\1dashboard.onload = function() {\n                if (!document.getElementById('facilityOpsPolish043')) {\n                  const polish = document.createElement('script');\n                  polish.id = 'facilityOpsPolish043';\n                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';\n                  polish.async = false;\n                  document.body.appendChild(polish);\n                }\n              };\n              document.body.appendChild(dashboard);"
-              s,n=re.subn(pattern,replacement,s,count=1)
-              if n != 1:
-                  raise SystemExit('dashboard loader block not found')
+          p=Path('v043_polish.js')
+          s=p.read_text(encoding='utf-8').replace('.body.light .view:not(#view-dashboard) .data-table thead','body.light .view:not(#view-dashboard) .data-table thead')
           p.write_text(s,encoding='utf-8')
+          c=Path('config.js').read_text(encoding='utf-8')
+          assert "polish.id = 'facilityOpsPolish043'" in c
+          assert "v043_polish.js?v=043-full-interface-polish-20260830" in c
           PY
           node --check config.js
           node --check v043_polish.js
           node --check v043_dashboard.js
           node --check v043_logo_fix.js
-      - name: Commit activation
+      - name: Commit final polish
         run: |
           git config user.name 'facility-ops-ui-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add config.js
+          git add v043_polish.js
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Activate v0.4.3 full interface polish'
+          git commit -m 'Finalize v0.4.3 full interface polish'
           git push
