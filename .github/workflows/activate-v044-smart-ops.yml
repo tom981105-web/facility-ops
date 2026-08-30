@@ -20,25 +20,31 @@ jobs:
           p=Path('config.js')
           s=p.read_text(encoding='utf-8')
           if 'facilityOpsSmartOps044' not in s:
-              old="""                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
-                  polish.async = false;
-                  document.body.appendChild(polish);"""
-              new="""                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
-                  polish.async = false;
-                  polish.onload = function() {
-                    if (!document.getElementById('facilityOpsSmartOps044')) {
-                      const smart = document.createElement('script');
-                      smart.id = 'facilityOpsSmartOps044';
-                      smart.src = 'v044.js?v=044-smart-ops-20260830';
-                      smart.async = false;
-                      document.body.appendChild(smart);
-                    }
-                  };
-                  document.body.appendChild(polish);"""
-              if old not in s:
-                  raise SystemExit('polish loader block not found')
-              s=s.replace(old,new,1)
+              lines=s.splitlines()
+              done=False
+              out=[]
+              for line in lines:
+                  out.append(line)
+                  if not done and "polish.async = false;" in line:
+                      indent=line[:len(line)-len(line.lstrip())]
+                      out.extend([
+                          indent+"polish.onload = function() {",
+                          indent+"  if (!document.getElementById('facilityOpsSmartOps044')) {",
+                          indent+"    const smart = document.createElement('script');",
+                          indent+"    smart.id = 'facilityOpsSmartOps044';",
+                          indent+"    smart.src = 'v044.js?v=044-smart-ops-20260830';",
+                          indent+"    smart.async = false;",
+                          indent+"    document.body.appendChild(smart);",
+                          indent+"  }",
+                          indent+"};"
+                      ])
+                      done=True
+              if not done:
+                  raise SystemExit('polish.async loader line not found')
+              s='\n'.join(out)+'\n'
           p.write_text(s,encoding='utf-8')
+          assert s.count('facilityOpsSmartOps044') >= 2
+          assert "v044.js?v=044-smart-ops-20260830" in s
           PY
           node --check config.js
           node --check v044.js
