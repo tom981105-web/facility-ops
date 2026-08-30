@@ -59,15 +59,29 @@
     const root=ensureMfaOverlay();const errorEl=root.querySelector('#v042MfaError');
     errorEl.textContent='2FA 정보를 확인하는 중...';
     try{
-      const {data,error}=await gate.client.auth.mfa.listFactors();if(error)throw error;
-      gate.factor=(data?.totp||[]).find(x=>!x.status||x.status==='verified')||null;
-      if(gate.factor){
-        gate.enrollment=null;root.querySelector('#v042MfaTitle').textContent='관리자 2단계 인증';root.querySelector('#v042MfaHelp').textContent='Authenticator 앱에 표시되는 6자리 코드를 입력하세요.';root.querySelector('#v042EnrollBox').hidden=true;
+      const listed=await gate.client.auth.mfa.listFactors();if(listed.error)throw listed.error;
+      const factors=listed.data?.totp||[];
+      const verified=factors.find(x=>x.status==='verified')||null;
+      if(verified){
+        gate.factor=verified;gate.enrollment=null;
+        root.querySelector('#v042MfaTitle').textContent='관리자 2단계 인증';
+        root.querySelector('#v042MfaHelp').textContent='Authenticator 앱에 표시되는 6자리 코드를 입력하세요.';
+        root.querySelector('#v042EnrollBox').hidden=true;
       }else{
-        const enrolled=await gate.client.auth.mfa.enroll({factorType:'totp',friendlyName:'FACILITY OPS 관리자'});if(enrolled.error)throw enrolled.error;
+        const pending=factors.filter(x=>x.status!=='verified');
+        for(const factor of pending){
+          if(!factor?.id)continue;
+          const removed=await gate.client.auth.mfa.unenroll({factorId:factor.id});
+          if(removed.error)console.warn('[FACILITY OPS v0.4.2 MFA stale cleanup]',removed.error);
+        }
+        const friendly='FACILITY OPS 관리자 '+String(Date.now()).slice(-6);
+        const enrolled=await gate.client.auth.mfa.enroll({factorType:'totp',friendlyName:friendly});if(enrolled.error)throw enrolled.error;
         gate.enrollment=enrolled.data;gate.factor=enrolled.data;
-        root.querySelector('#v042MfaTitle').textContent='관리자 2FA 최초 등록';root.querySelector('#v042MfaHelp').textContent='Authenticator 앱에서 QR 코드를 스캔한 뒤 표시되는 6자리 코드를 입력하세요.';
-        root.querySelector('#v042EnrollBox').hidden=false;root.querySelector('#v042MfaQr').src=qrSource(enrolled.data?.totp?.qr_code||'');root.querySelector('#v042MfaSecret').textContent=enrolled.data?.totp?.secret?'수동 등록 키: '+enrolled.data.totp.secret:'QR 코드를 스캔해 주세요.';
+        root.querySelector('#v042MfaTitle').textContent='관리자 2FA 최초 등록';
+        root.querySelector('#v042MfaHelp').textContent='① Authenticator 앱에서 새 QR을 스캔 → ② 앱에 표시되는 6자리 코드 입력 → ③ 인증을 누르세요.';
+        root.querySelector('#v042EnrollBox').hidden=false;
+        root.querySelector('#v042MfaQr').src=qrSource(enrolled.data?.totp?.qr_code||'');
+        root.querySelector('#v042MfaSecret').textContent=enrolled.data?.totp?.secret?'수동 등록 키: '+enrolled.data.totp.secret:'QR 코드를 스캔해 주세요.';
       }
       errorEl.textContent='';setTimeout(()=>root.querySelector('#v042MfaCode')?.focus(),20);
     }catch(err){console.error('[FACILITY OPS v0.4.2 MFA prepare]',err);errorEl.textContent=err?.message||'2FA 정보를 준비하지 못했습니다.';}
