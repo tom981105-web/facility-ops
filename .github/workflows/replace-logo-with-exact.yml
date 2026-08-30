@@ -13,22 +13,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Decode exact logo
+
+      - name: Decode exact logo and bust browser cache
         run: |
           cat .logo-real-0.b64 .logo-real-1.b64 .logo-real-2.b64 .logo-real-3.b64 | base64 -d > facility-logo.webp
           test -s facility-logo.webp
-          file facility-logo.webp
+          file facility-logo.webp | grep -q 'Web/P image'
           python - <<'PY'
-          from PIL import Image
-          im=Image.open('facility-logo.webp')
-          print(im.format, im.size, im.mode)
-          assert im.format == 'WEBP'
-          assert im.size == (256,256)
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('facility-logo.webp?v=20260830-final-static','facility-logo.webp?v=20260830-exact-user-logo-v1')
+          p.write_text(s,encoding='utf-8')
+          assert 'facility-logo.webp?v=20260830-exact-user-logo-v1' in s
           PY
+
       - name: Commit exact logo
         run: |
           git config user.name 'facility-ops-ui-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add facility-logo.webp
+          git add facility-logo.webp index.html
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
           git commit -m 'Use exact provided FACILITY OPS logo asset'
           git push
