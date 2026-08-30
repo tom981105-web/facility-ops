@@ -1,0 +1,54 @@
+name: Apply direct logo activation
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-logo-direct-final.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Expose embedded logo and bump caches
+        shell: python
+        run: |
+          from pathlib import Path
+          ui=Path('v043_ui.js')
+          s=ui.read_text(encoding='utf-8')
+          marker='const LOGO='
+          start=s.find(marker)
+          if start < 0:
+              raise SystemExit('LOGO declaration missing')
+          end=s.find(';\n', start)
+          if end < 0:
+              raise SystemExit('LOGO declaration end missing')
+          if 'window.FACILITY_OPS_LOGO=LOGO;' not in s:
+              end += 1
+              s=s[:end]+'\nwindow.FACILITY_OPS_LOGO=LOGO;'+s[end:]
+              ui.write_text(s,encoding='utf-8')
+
+          cfg=Path('config.js')
+          c=cfg.read_text(encoding='utf-8')
+          import re
+          c=re.sub(r"v043_ui\.js\?v=[^']+", "v043_ui.js?v=043-ops-ui-logo-final-20260830", c)
+          c=re.sub(r"v043_logo_fix\.js\?v=[^']+", "v043_logo_fix.js?v=043-logo-direct-final-20260830", c)
+          cfg.write_text(c,encoding='utf-8')
+      - name: Validate
+        run: |
+          node --check config.js
+          node --check v043_ui.js
+          node --check v043_logo_fix.js
+          grep -q "window.FACILITY_OPS_LOGO=LOGO" v043_ui.js
+          grep -q "043-logo-direct-final-20260830" config.js
+      - name: Commit
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'facility-ops-ui-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add config.js v043_ui.js
+          git commit -m 'Mount FACILITY OPS logo directly from embedded asset'
+          git push
