@@ -261,6 +261,15 @@ window.FACILITY_OPS_CONFIG = {
               dashboard.id = 'facilityOpsDashboard043';
               dashboard.src = 'v043_dashboard.js?v=043-command-center-20260830';
               dashboard.async = false;
+              dashboard.onload = function() {
+                if (!document.getElementById('facilityOpsPolish043')) {
+                  const polish = document.createElement('script');
+                  polish.id = 'facilityOpsPolish043';
+                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
+                  polish.async = false;
+                  document.body.appendChild(polish);
+                }
+              };
               document.body.appendChild(dashboard);
             }
           };
