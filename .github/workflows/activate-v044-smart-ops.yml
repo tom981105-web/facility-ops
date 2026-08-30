@@ -1,0 +1,54 @@
+name: Activate v044 SMART OPS
+
+on:
+  push:
+    paths:
+      - '.github/workflows/activate-v044-smart-ops.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire isolated SMART OPS layer
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('config.js')
+          s=p.read_text(encoding='utf-8')
+          if 'facilityOpsSmartOps044' not in s:
+              old="""                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
+                  polish.async = false;
+                  document.body.appendChild(polish);"""
+              new="""                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
+                  polish.async = false;
+                  polish.onload = function() {
+                    if (!document.getElementById('facilityOpsSmartOps044')) {
+                      const smart = document.createElement('script');
+                      smart.id = 'facilityOpsSmartOps044';
+                      smart.src = 'v044.js?v=044-smart-ops-20260830';
+                      smart.async = false;
+                      document.body.appendChild(smart);
+                    }
+                  };
+                  document.body.appendChild(polish);"""
+              if old not in s:
+                  raise SystemExit('polish loader block not found')
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          node --check config.js
+          node --check v044.js
+          node --check v043_polish.js
+          node --check v043_dashboard.js
+      - name: Commit activation
+        run: |
+          git config user.name 'facility-ops-ui-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add config.js
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Activate FACILITY OPS v0.4.4 SMART OPS'
+          git push
