@@ -337,12 +337,21 @@ h1 { font-size:28px; }
 .readonly-note { font-size:9px; color:var(--watch); }
 @media(max-width:820px){ .user-chip{display:none}.online-pill{display:none} }
 
+
+/* FINAL STATIC FACILITY OPS LOGO — no JavaScript dependency */
+.facility-logo-static{display:block!important;visibility:visible!important;opacity:1!important;width:72px!important;height:52px!important;min-width:72px!important;max-width:72px!important;object-fit:contain!important;object-position:center!important;flex:0 0 72px!important;filter:none!important;transform:none!important;background:transparent!important;position:relative!important;z-index:999!important}
+.brand>.facility-logo-static{margin:0 2px 0 0!important}
+.auth-logo>.facility-logo-static{width:108px!important;height:76px!important;min-width:108px!important;max-width:108px!important;margin:0 auto 10px!important}
+.brand>.brand-mark,.auth-logo>.brand-mark{display:none!important}
+.brand>.facility-brand-logo,.brand>.facility-brand-logo-final,.auth-logo>.facility-brand-logo,.auth-logo>.facility-brand-logo-final{display:none!important}
+
 </style>
+<link rel="preload" as="image" href="facility-logo.webp?v=20260830-final-static" type="image/webp">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">
+      <div class="brand"><img class="facility-logo-static" src="facility-logo.webp?v=20260830-final-static" alt="FACILITY OPS" width="72" height="52">
         <div class="brand-mark" aria-hidden="true">
           <span></span><span></span><span></span><span></span>
         </div>
@@ -395,7 +404,7 @@ h1 { font-size:28px; }
 
   <div class="auth-gate" id="authGate">
     <div class="auth-card">
-      <div class="auth-logo">
+      <div class="auth-logo"><img class="facility-logo-static" src="facility-logo.webp?v=20260830-final-static" alt="FACILITY OPS" width="72" height="52">
         <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
         <div><h2>FACILITY OPS</h2><p>v0.3.1 MULTI USER ONLINE</p></div>
       </div>
