@@ -19,27 +19,12 @@ jobs:
           from pathlib import Path
           p = Path('config.js')
           s = p.read_text(encoding='utf-8')
-          old = """        finalSecurity.id = 'facilityOpsV043Script';
-        finalSecurity.src = 'v043.js?v=043-final-20260830';
-        finalSecurity.async = false;
-        document.body.appendChild(finalSecurity);"""
-          new = """        finalSecurity.id = 'facilityOpsV043Script';
-        finalSecurity.src = 'v043.js?v=043-final-20260830';
-        finalSecurity.async = false;
-        finalSecurity.onload = function() {
-          if (document.getElementById('facilityOpsUi043Script')) return;
-          const ui = document.createElement('script');
-          ui.id = 'facilityOpsUi043Script';
-          ui.src = 'v043_ui.js?v=043-ops-ui-20260830';
-          ui.async = false;
-          document.body.appendChild(ui);
-        };
-        document.body.appendChild(finalSecurity);"""
+          old = "        finalSecurity.id = 'facilityOpsV043Script';\n        finalSecurity.src = 'v043.js?v=043-final-20260830';\n        finalSecurity.async = false;\n        document.body.appendChild(finalSecurity);"
+          new = "        finalSecurity.id = 'facilityOpsV043Script';\n        finalSecurity.src = 'v043.js?v=043-final-20260830';\n        finalSecurity.async = false;\n        finalSecurity.onload = function() {\n          if (document.getElementById('facilityOpsUi043Script')) return;\n          const ui = document.createElement('script');\n          ui.id = 'facilityOpsUi043Script';\n          ui.src = 'v043_ui.js?v=043-ops-ui-20260830';\n          ui.async = false;\n          document.body.appendChild(ui);\n        };\n        document.body.appendChild(finalSecurity);"
           if new not in s:
               if old not in s:
                   raise SystemExit('expected v043 loader not found')
-              s = s.replace(old, new, 1)
-              p.write_text(s, encoding='utf-8')
+              p.write_text(s.replace(old, new, 1), encoding='utf-8')
       - name: Validate JavaScript
         run: |
           node --check config.js
