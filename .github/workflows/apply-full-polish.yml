@@ -17,27 +17,15 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p=Path('config.js')
           s=p.read_text(encoding='utf-8')
           if 'facilityOpsPolish043' not in s:
-              old="""              dashboard.src = 'v043_dashboard.js?v=043-command-center-20260830';
-              dashboard.async = false;
-              document.body.appendChild(dashboard);"""
-              new="""              dashboard.src = 'v043_dashboard.js?v=043-command-center-20260830';
-              dashboard.async = false;
-              dashboard.onload = function() {
-                if (!document.getElementById('facilityOpsPolish043')) {
-                  const polish = document.createElement('script');
-                  polish.id = 'facilityOpsPolish043';
-                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';
-                  polish.async = false;
-                  document.body.appendChild(polish);
-                }
-              };
-              document.body.appendChild(dashboard);"""
-              if old not in s:
+              pattern=r"(dashboard\.src\s*=\s*'v043_dashboard\.js\?v=043-command-center-20260830';\s*dashboard\.async\s*=\s*false;\s*)document\.body\.appendChild\(dashboard\);"
+              replacement=r"\1dashboard.onload = function() {\n                if (!document.getElementById('facilityOpsPolish043')) {\n                  const polish = document.createElement('script');\n                  polish.id = 'facilityOpsPolish043';\n                  polish.src = 'v043_polish.js?v=043-full-interface-polish-20260830';\n                  polish.async = false;\n                  document.body.appendChild(polish);\n                }\n              };\n              document.body.appendChild(dashboard);"
+              s,n=re.subn(pattern,replacement,s,count=1)
+              if n != 1:
                   raise SystemExit('dashboard loader block not found')
-              s=s.replace(old,new,1)
           p.write_text(s,encoding='utf-8')
           PY
           node --check config.js
