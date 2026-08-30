@@ -24,8 +24,11 @@
   }
 
   function isAdmin() {
-    try { if (currentProfile?.role === 'admin') return true; } catch (_) {}
-    return document.querySelector('#userChip small')?.textContent?.trim() === '관리자';
+    try {
+      return currentProfile?.role === 'admin'
+        && currentProfile?.approved !== false
+        && (!currentProfile?.account_status || currentProfile.account_status === 'active');
+    } catch (_) { return false; }
   }
 
   function isViewer() {

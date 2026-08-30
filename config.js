@@ -71,7 +71,11 @@ window.FACILITY_OPS_CONFIG = {
   patchSupabasePersistence();
 
   function isAdminUi() {
-    return document.querySelector('#userChip small')?.textContent?.trim() === '관리자';
+    try {
+      return currentProfile?.role === 'admin'
+        && currentProfile?.approved !== false
+        && (!currentProfile?.account_status || currentProfile.account_status === 'active');
+    } catch (_) { return false; }
   }
 
   function notify(message) {
@@ -230,8 +234,16 @@ window.FACILITY_OPS_CONFIG = {
       if (document.getElementById('facilityOpsV041Script')) return;
       const security = document.createElement('script');
       security.id = 'facilityOpsV041Script';
-      security.src = 'v041.js?v=042-stable-core';
+      security.src = 'v041.js?v=043-final-core';
       security.async = false;
+      security.onload = function() {
+        if (document.getElementById('facilityOpsV043Script')) return;
+        const finalSecurity = document.createElement('script');
+        finalSecurity.id = 'facilityOpsV043Script';
+        finalSecurity.src = 'v043.js?v=043-final-20260830';
+        finalSecurity.async = false;
+        document.body.appendChild(finalSecurity);
+      };
       document.body.appendChild(security);
     };
     document.body.appendChild(base);

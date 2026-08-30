@@ -12,7 +12,7 @@
   let mfaGate=null;
 
   function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-  function isAdminProfile(p){return p?.approved!==false&&p?.role==='admin';}
+  function isAdminProfile(p){return p?.approved!==false&&p?.role==='admin'&&(!p?.account_status||p.account_status==='active');}
   function qrSource(raw){const t=String(raw||'');if(t.startsWith('data:'))return t;if(t.trim().startsWith('<svg'))return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(t);return t;}
 
   function injectStyle(){
@@ -144,10 +144,10 @@
   function ensureSecurityButton(){
     const logout=document.getElementById('logoutBtn');if(!logout)return;let btn=document.getElementById('securityTestBtnV042');
     if(!btn){btn=document.createElement('button');btn.id='securityTestBtnV042';btn.type='button';btn.className='ghost-btn full';btn.textContent='보안 점검';btn.onclick=runSecurityTest;logout.parentNode.insertBefore(btn,logout);}
-    const admin=document.querySelector('#userChip small')?.textContent?.trim()==='관리자';btn.hidden=!admin;btn.style.display=admin?'':'none';
+    const admin=isAdminProfile(lastProfile);btn.hidden=!admin;btn.style.display=admin?'':'none';
   }
   async function runSecurityTest(){
-    if(document.querySelector('#userChip small')?.textContent?.trim()!=='관리자')return;
+    if(!isAdminProfile(lastProfile))return;
     const root=ensureSecurityOverlay();root.hidden=false;const list=root.querySelector('#v042SecurityList');const rows=[];const add=(ok,title,text)=>rows.push({ok,title,text});
     add(location.protocol==='https:','HTTPS',location.protocol==='https:'?'HTTPS 접속':'HTTPS가 아닙니다.');
     const csp=document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.content||'';add(csp.includes("default-src 'self'")&&csp.includes("object-src 'none'"),'CSP',csp?'CSP 적용됨':'CSP 없음');
