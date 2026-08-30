@@ -18,42 +18,39 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          old="""async function loginWithPassword(email,password){
-  document.getElementById('loginError').textContent='';
-  try{setOnlineStatus('로그인 중',false);const {data,error}=await dbClient.auth.signInWithPassword({email,password});if(error)throw error;currentUser=data.user;document.getElementById('authGate').hidden=true;await loadRemoteData();startRealtime();}
-  catch(err){document.getElementById('loginError').textContent=err.message||'로그인에 실패했습니다.';setOnlineStatus('로그인 필요',false);}
-}"""
-          new="""async function loginWithPassword(email,password){
-  const errorEl=document.getElementById('loginError');
-  if(errorEl)errorEl.textContent='';
-  try{
-    setOnlineStatus('로그인 중',false);
-    if(!dbClient){
-      const cfg=getRuntimeConfig();
-      if(!cfg?.supabaseUrl||!cfg?.supabaseKey)throw new Error('서버 연결 정보를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');
-      await initSupabase(cfg);
-    }
-    if(!dbClient?.auth)throw new Error('로그인 서버 초기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');
-    const raw=String(email||'').trim().toLowerCase();
-    const actualEmail=raw.includes('@')?raw:raw+'@facility.local';
-    const {data,error}=await dbClient.auth.signInWithPassword({email:actualEmail,password});
-    if(error)throw error;
-    currentUser=data.user;
-    document.getElementById('authGate').hidden=true;
-    await loadRemoteData();
-    startRealtime();
-  }catch(err){
-    console.error('[FACILITY OPS login]',err);
-    if(errorEl)errorEl.textContent=err?.message||'로그인에 실패했습니다.';
-    setOnlineStatus('로그인 필요',false);
-  }
-}"""
-          if old not in s:
-              raise SystemExit('target login function not found')
-          s=s.replace(old,new,1)
-          s=s.replace('config.js?v=0422-20260830','config.js?v=0423-loginfix-20260830')
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          start = s.index('async function loginWithPassword(email,password){')
+          end = s.index('async function verifySupabaseConfig', start)
+          new = (
+              "async function loginWithPassword(email,password){\n"
+              "  const errorEl=document.getElementById('loginError');\n"
+              "  if(errorEl)errorEl.textContent='';\n"
+              "  try{\n"
+              "    setOnlineStatus('로그인 중',false);\n"
+              "    if(!dbClient){\n"
+              "      const cfg=getRuntimeConfig();\n"
+              "      if(!cfg?.supabaseUrl||!cfg?.supabaseKey)throw new Error('서버 연결 정보를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.');\n"
+              "      await initSupabase(cfg);\n"
+              "    }\n"
+              "    if(!dbClient?.auth)throw new Error('로그인 서버 초기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');\n"
+              "    const raw=String(email||'').trim().toLowerCase();\n"
+              "    const actualEmail=raw.includes('@')?raw:raw+'@facility.local';\n"
+              "    const {data,error}=await dbClient.auth.signInWithPassword({email:actualEmail,password});\n"
+              "    if(error)throw error;\n"
+              "    currentUser=data.user;\n"
+              "    document.getElementById('authGate').hidden=true;\n"
+              "    await loadRemoteData();\n"
+              "    startRealtime();\n"
+              "  }catch(err){\n"
+              "    console.error('[FACILITY OPS login]',err);\n"
+              "    if(errorEl)errorEl.textContent=err?.message||'로그인에 실패했습니다.';\n"
+              "    setOnlineStatus('로그인 필요',false);\n"
+              "  }\n"
+              "}\n"
+          )
+          s = s[:start] + new + s[end:]
+          s = s.replace('config.js?v=0422-20260830','config.js?v=0423-loginfix-20260830')
           p.write_text(s,encoding='utf-8')
       - name: Commit patched login
         run: |
@@ -63,5 +60,3 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Fix v0.4.2 login client initialization"
           git push
-
-# trigger 2
