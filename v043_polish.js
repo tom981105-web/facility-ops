@@ -104,7 +104,7 @@
 body.light .view:not(#view-dashboard) .panel,body.light .detail-hero,body.light .modal,body.light .v04-admin-shell{background:linear-gradient(150deg,#fff,#f8fafc)!important;border-color:rgba(35,55,78,.10)!important;box-shadow:0 12px 32px rgba(40,58,78,.07)!important}
 body.light .table-toolbar,body.light .detail-metric,body.light .cal-day,body.light .v04-admin-tabs,body.light .v04-admin-head,body.light .modal-head,body.light .modal-foot{background:#f7fafc!important}
 body.light .searchbox,body.light .filter-btn,body.light .filter-select,body.light .quick-action,body.light .field input,body.light .field select,body.light .field textarea,body.light .v04-table-wrap,body.light .v04-log,body.light .v04-tab{background:#fff!important}
-body.light .view:not(#view-dashboard) .data-table{background:#fff!important}.body.light .view:not(#view-dashboard) .data-table thead{background:#f7fafc!important}
+body.light .view:not(#view-dashboard) .data-table{background:#fff!important}body.light .view:not(#view-dashboard) .data-table thead{background:#f7fafc!important}
 body.light .view:not(#view-dashboard) .data-table tbody tr:nth-child(even){background:#fbfcfe!important}
 body.light .view:not(#view-dashboard) .data-table tbody tr:hover,body.light .v04-table tbody tr:hover{background:#f1f7fd!important}
 body.light .modal-backdrop,body.light .v04-admin-overlay{background:rgba(222,231,240,.76)!important}
